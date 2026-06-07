@@ -99,7 +99,7 @@
           </div>
           <div class="contact-item">
             <div class="contact-item-label">Instagram</div>
-            <a class="contact-item-value" href="https://instagram.com/studioarchief" target="_blank" rel="noopener">@tarchief.studio</a>
+            <a class="contact-item-value" href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener">@tarchief.studio</a>
           </div>
         </div>
       </div>
