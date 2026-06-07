@@ -33,7 +33,7 @@
   <div class="footer-bottom">
     <div class="footer-bottom-inner">
       <div class="footer-legal">
-        <span>© {currentYear} Studio 't Archief</span>
+        <span>© {currentYear} Studio 't archief</span>
         <span class="sep">/</span>
         <span>Brussel, België</span>
       </div>
