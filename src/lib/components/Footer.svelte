@@ -1,3 +1,7 @@
+<script lang="ts">
+  const currentYear = new Date().getFullYear();
+</script>
+
 <footer>
   <div class="footer-main">
     <div class="footer-left">
@@ -29,7 +33,7 @@
   <div class="footer-bottom">
     <div class="footer-bottom-inner">
       <div class="footer-legal">
-        <span>© 2025 Studio 't Archief</span>
+        <span>© {currentYear} Studio 't Archief</span>
         <span class="sep">/</span>
         <span>Brussel, België</span>
       </div>
