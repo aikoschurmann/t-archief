@@ -114,7 +114,7 @@
 
   .apos {
     font-family: var(--brand);
-    font-style: italic;
+    font-style: normal;
     font-weight: 300;
     font-size: clamp(5rem, 12vw, 12rem);
     color: var(--accent);
