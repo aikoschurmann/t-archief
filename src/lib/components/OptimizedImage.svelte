@@ -10,12 +10,12 @@
   // path/image_md.webp (1600w)
   // path/image_blur.webp (Tiny)
 
-  const base = src.substring(0, src.lastIndexOf('.'));
-  const blurSrc = `${base}_blur.webp`;
-  const smSrc = `${base}_sm.webp`;
-  const mdSrc = `${base}_md.webp`;
+  let base = $derived(src ? src.substring(0, src.lastIndexOf('.')) : '');
+  let blurSrc = $derived(base ? `${base}_blur.webp` : '');
+  let smSrc = $derived(base ? `${base}_sm.webp` : '');
+  let mdSrc = $derived(base ? `${base}_md.webp` : '');
   
-  const srcset = `${smSrc} 800w, ${mdSrc} 1600w, ${src} 2500w`;
+  let srcset = $derived(src ? `${smSrc} 800w, ${mdSrc} 1600w, ${src} 2500w` : '');
 
   function handleLoad() {
     isLoaded = true;

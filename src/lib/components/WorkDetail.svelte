@@ -8,12 +8,16 @@
 
   // Masonry State
   let columnCount = $derived(item.meta?.columns || (item.images.length > 1 ? 2 : 1));
-  let columns: string[][] = $state(Array.from({ length: columnCount }, () => []));
-  let colHeights: number[] = $state(Array(columnCount).fill(0));
+  let columns: string[][] = $state([]);
+  let colHeights: number[] = $state([]);
   let imagesLoaded = $state(0);
 
   onMount(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Initialize state arrays based on derived columnCount
+    columns = Array.from({ length: columnCount }, () => []);
+    colHeights = Array(columnCount).fill(0);
     
     // Initial distribution (round-robin) while we wait for measurements
     distributeRoundRobin();

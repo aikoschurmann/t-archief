@@ -3,7 +3,7 @@
  * Scans src/lib/assets/work and resolves items based on folder contents.
  */
 
-const mediaFiles = import.meta.glob('/src/lib/assets/work/**/*.{jpg,jpeg,png,webp,mp4}', { eager: true, as: 'url' });
+const mediaFiles = import.meta.glob('/src/lib/assets/work/**/*.{jpg,jpeg,png,webp,mp4}', { eager: true, query: '?url', import: 'default' });
 const metaFiles = import.meta.glob('/src/lib/assets/work/**/meta.json', { eager: true });
 
 export type WorkItem = {

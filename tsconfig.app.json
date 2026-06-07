@@ -16,5 +16,6 @@
     "checkJs": true,
     "moduleDetection": "force"
   },
-  "include": ["src copy 3/**/*.ts", "src copy 3/**/*.js", "src copy 3/**/*.svelte"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }
+
