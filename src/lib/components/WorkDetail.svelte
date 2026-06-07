@@ -366,12 +366,13 @@
 
   @media (max-width: 900px) {
     .content-wrapper { padding: 0 24px 60px; }
-    .detail-nav { padding: 24px 24px 0; }
-    .detail-header { margin: 4rem 0 4rem 0; gap: 3rem; }
-    .header-meta { gap: 2rem; flex-wrap: wrap; padding-top: 2rem; }
+    .detail-nav { padding: 32px 24px 0; }
+    .detail-header { margin: 1.5rem 0 2.5rem 0; gap: 1.5rem; }
+    .header-main { gap: 1.5rem; }
+    .header-meta { gap: 1.5rem; flex-wrap: wrap; padding-top: 0.5rem; }
     .masonry-grid { flex-direction: column; gap: 12px; }
     .masonry-col { gap: 12px; }
-    .description { font-size: 1rem; }
-    .detail-title { font-size: 3rem; }
+    .description { font-size: 1rem; line-height: 1.5; }
+    .detail-title { font-size: 2.5rem; }
   }
 </style>
