@@ -19,45 +19,65 @@ export type WorkItem = {
   meta?: Record<string, any>;
 };
 
-export function loadWorks(): WorkItem[] {
-  const works: Record<string, WorkItem> = {};
-  const folderFiles: Record<string, Record<string, string>> = {};
+export const imageAssetsMap: Record<string, { smSrc: string, mdSrc: string, blurSrc: string }> = {};
+const worksData: Record<string, WorkItem> = {};
+const folderFiles: Record<string, Record<string, string>> = {};
 
-  // 1. Group all files by folder
-  for (const path in mediaFiles) {
-    const url = mediaFiles[path] as string;
-    const parts = path.split('/');
-    const fileName = parts.pop()!;
-    const folderName = parts.pop()!;
-    const folderPath = parts.join('/') + '/' + folderName;
+// Pre-process files at module load time
+for (const path in mediaFiles) {
+  const url = mediaFiles[path] as string;
+  const parts = path.split('/');
+  const fileName = parts.pop()!;
+  const folderName = parts.pop()!;
+  const folderPath = parts.join('/') + '/' + folderName;
 
-    if (folderName === 'work') continue;
+  if (folderName === 'work') continue;
 
-    if (!works[folderPath]) {
-      works[folderPath] = {
-        id: folderName,
-        title: folderName.replace(/-/g, ' '),
-        type: 'image',
-        url: '',
-        images: [],
-        order: 999, // Default to end of list
-        meta: {}
-      };
-      folderFiles[folderPath] = {};
-    }
+  if (!worksData[folderPath]) {
+    worksData[folderPath] = {
+      id: folderName,
+      title: folderName.replace(/-/g, ' '),
+      type: 'image',
+      url: '',
+      images: [],
+      order: 999, // Default to end of list
+      meta: {}
+    };
+    folderFiles[folderPath] = {};
+  }
 
-    folderFiles[folderPath][fileName] = url;
+  folderFiles[folderPath][fileName] = url;
 
-    if (fileName.endsWith('.mp4')) {
-      works[folderPath].videoUrl = url;
-      works[folderPath].type = 'video';
-    } else {
-      // Ignore optimized variations (_sm, _md, _blur)
-      if (!fileName.match(/_(sm|md|blur)\.(webp|jpg|jpeg|png)$/i)) {
-        works[folderPath].images.push(url);
-      }
+  if (fileName.endsWith('.mp4')) {
+    worksData[folderPath].videoUrl = url;
+    worksData[folderPath].type = 'video';
+  } else {
+    // Ignore optimized variations (_sm, _md, _blur)
+    if (!fileName.match(/_(sm|md|blur)\.(webp|jpg|jpeg|png)$/i)) {
+      worksData[folderPath].images.push(url);
     }
   }
+}
+
+// Build the imageAssetsMap mapping original hashed URL to variant hashed URLs
+for (const folderPath in folderFiles) {
+  const files = folderFiles[folderPath];
+  for (const fileName in files) {
+    if (!fileName.match(/_(sm|md|blur)\.(webp|jpg|jpeg|png)$/i) && !fileName.endsWith('.mp4')) {
+      const originalUrl = files[fileName];
+      const base = fileName.substring(0, fileName.lastIndexOf('.'));
+      imageAssetsMap[originalUrl] = {
+        smSrc: files[`${base}_sm.webp`] || originalUrl,
+        mdSrc: files[`${base}_md.webp`] || originalUrl,
+        blurSrc: files[`${base}_blur.webp`] || ''
+      };
+    }
+  }
+}
+
+export function loadWorks(): WorkItem[] {
+  // Clone to avoid mutation issues if called multiple times, though meta is static.
+  const works = JSON.parse(JSON.stringify(worksData)); 
 
   // 2. Resolve 'Set' type automatically & process Metadata
   for (const folderPath in works) {
@@ -98,7 +118,7 @@ export function loadWorks(): WorkItem[] {
           }
         });
         // Add any remaining images that weren't in the list
-        item.images.forEach(imgUrl => {
+        item.images.forEach((imgUrl: string) => {
           if (!orderedImages.includes(imgUrl)) {
             orderedImages.push(imgUrl);
           }
@@ -126,7 +146,7 @@ export function loadWorks(): WorkItem[] {
   }
 
   // Final sort: by order first, then by ID
-  return Object.values(works).sort((a, b) => {
+  return (Object.values(works) as WorkItem[]).sort((a: any, b: any) => {
     if (a.order !== b.order) {
       return a.order - b.order;
     }

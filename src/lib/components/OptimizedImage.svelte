@@ -1,19 +1,16 @@
 <script lang="ts">
+  import { imageAssetsMap } from '../utils/workLoader';
+
   let { src, alt = '', class: className = '' } = $props();
 
   let isLoaded = $state(false);
   
-  // Construct variations based on naming convention
-  // Assuming: 
-  // path/image.jpg
-  // path/image_sm.webp (800w)
-  // path/image_md.webp (1600w)
-  // path/image_blur.webp (Tiny)
-
-  let base = $derived(src ? src.substring(0, src.lastIndexOf('.')) : '');
-  let blurSrc = $derived(base ? `${base}_blur.webp` : '');
-  let smSrc = $derived(base ? `${base}_sm.webp` : '');
-  let mdSrc = $derived(base ? `${base}_md.webp` : '');
+  // Use the pre-computed map that holds correct hashed URLs from Vite
+  let assets = $derived(imageAssetsMap[src] || { smSrc: src, mdSrc: src, blurSrc: '' });
+  
+  let blurSrc = $derived(assets.blurSrc);
+  let smSrc = $derived(assets.smSrc);
+  let mdSrc = $derived(assets.mdSrc);
   
   let srcset = $derived(src ? `${smSrc} 800w, ${mdSrc} 1600w, ${src} 2500w` : '');
 
@@ -24,12 +21,14 @@
 
 <div class="optimized-image-container {className}">
   <!-- Blur Placeholder -->
-  <img 
-    src={blurSrc} 
-    alt=""
-    class="blur-placeholder" 
-    class:hidden={isLoaded}
-  />
+  {#if blurSrc}
+    <img 
+      src={blurSrc} 
+      alt=""
+      class="blur-placeholder" 
+      class:hidden={isLoaded}
+    />
+  {/if}
 
   <!-- Main Image -->
   <img
