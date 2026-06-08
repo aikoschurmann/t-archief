@@ -49,6 +49,37 @@
       }
     }
   });
+
+  // Track page views in GA4 and update title
+  $effect(() => {
+    // 1. Update document title
+    let title = "Studio 't Archief | Portret & Eventfotografie";
+    if (activeWork) {
+      title = `${activeWork.title} | Studio 't Archief`;
+    } else if (currentPath === '#about') {
+      title = "Over | Studio 't Archief";
+    } else if (currentPath === '#contact') {
+      title = "Contact | Studio 't Archief";
+    }
+    
+    document.title = title;
+
+    // 2. Track GA page view
+    if (typeof (window as any).gtag === 'function') {
+      // Normalize path for GA: #/work/slug -> /work/slug, #about -> /about, etc.
+      const path = currentPath.startsWith('#') 
+        ? currentPath.substring(1) || '/' 
+        : currentPath || '/';
+      
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+      (window as any).gtag('config', 'G-JC6KNSDQYF', {
+        page_path: normalizedPath,
+        page_title: title,
+        page_location: window.location.href
+      });
+    }
+  });
 </script>
 
 <main>
