@@ -56,6 +56,8 @@
     let title = "Studio 't Archief | Portret & Eventfotografie";
     if (activeWork) {
       title = `${activeWork.title} | Studio 't Archief`;
+    } else if (currentPath === '#work') {
+      title = "Portfolio | Studio 't Archief";
     } else if (currentPath === '#about') {
       title = "Over | Studio 't Archief";
     } else if (currentPath === '#contact') {
