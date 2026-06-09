@@ -35,6 +35,8 @@
     {src}
     {alt}
     {srcset}
+    width="1200"
+    height="800"
     sizes="(max-width: 900px) 100vw, 1200px"
     loading="lazy"
     onload={handleLoad}

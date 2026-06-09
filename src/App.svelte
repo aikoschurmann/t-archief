@@ -54,7 +54,7 @@
   $effect(() => {
     // 1. Update document title & description
     let title = "Studio 't Archief | Portret & Eventfotografie";
-    let description = "Studio 't Archief legt jouw meest waardevolle momenten vast. Gevestigd in Brussel, gespecialiseerd in authentieke portret- en eventfotografie. Van moment naar beeld.";
+    let description = "Studio 't Archief in Brussel: authentieke portret- en eventfotografie. Wij vertalen jouw verhaal van moment naar beeld, zodat herinneringen nooit verloren gaan.";
     
     if (activeWork) {
       title = `${activeWork.title} | Studio 't Archief`;
