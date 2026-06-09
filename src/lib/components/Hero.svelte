@@ -4,14 +4,14 @@
       <div class="hero-content">
         
         <div class="wordmark-hero-wrap">
-          <div class="wordmark-hero">
+          <h1 class="wordmark-hero">
             <div class="studio">studio</div>
             <div class="name-wrap">
               <span class="apos">'</span>
               <span class="title">t archief</span>
             </div>
             <div class="subtitle">VAN MOMENT NAAR BEELD</div>
-          </div>
+          </h1>
         </div>
 
         <div class="hero-sub">

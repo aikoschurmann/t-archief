@@ -5,7 +5,7 @@
 <footer>
   <div class="footer-main">
     <div class="footer-left">
-      <h2 class="footer-big-title">Laten we<br>iets creëren.</h2>
+      <div class="footer-big-title">Laten we<br>iets creëren.</div>
       <div class="footer-contact-wrap">
         <a href="mailto:info@tarchief.studio" class="footer-email-large">info@tarchief.studio</a>
         
