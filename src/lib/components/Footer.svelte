@@ -6,7 +6,18 @@
   <div class="footer-main">
     <div class="footer-left">
       <h2 class="footer-big-title">Laten we<br>iets creëren.</h2>
-      <a href="mailto:info@tarchief.studio" class="footer-email-large">info@tarchief.studio</a>
+      <div class="footer-contact-wrap">
+        <a href="mailto:info@tarchief.studio" class="footer-email-large">info@tarchief.studio</a>
+        
+        <div class="footer-cta-wrap">
+          <a href="#contact" class="pill-cta">
+            <span class="pill-text">Start een project</span>
+            <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14m-7-7 7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
     </div>
 
     <div class="footer-right">
@@ -82,10 +93,58 @@
     color: var(--footer-fg);
     text-decoration: none;
     transition: color 0.3s ease;
+    margin-bottom: 40px;
   }
 
   .footer-email-large:hover {
     color: var(--accent);
+  }
+
+  .footer-cta-wrap {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .pill-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 12px 28px;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--fg);
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  .pill-text {
+    font-family: var(--body);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .pill-arrow {
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+    transition: transform 0.4s ease;
+  }
+
+  .pill-cta:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    gap: 20px;
+  }
+
+  .pill-cta:hover .pill-arrow {
+    transform: translateX(2px);
+    opacity: 1;
   }
 
   .footer-right {
@@ -132,7 +191,6 @@
   .footer-bottom {
     border-top: 1px solid var(--line);
     padding: 40px 0;
-    margin-top: 40px;
   }
 
   .footer-bottom-inner {
@@ -164,29 +222,58 @@
   }
 
   @media (max-width: 1024px) {
-    .footer-main { grid-template-columns: 1fr; gap: 64px; }
-    .footer-right { gap: 64px; }
-  }
-
-  @media (max-width: 768px) {
-    footer { padding: 80px 24px 0; }
-    
-    .footer-main { 
-      max-width: 500px; 
-      margin: 0 auto; 
-      text-align: left;
+    footer { 
+      padding: 80px 24px 0; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     
-    .footer-big-title { margin-bottom: 48px; }
-    .footer-right { flex-direction: column; gap: 48px; }
+    .footer-main { 
+      grid-template-columns: 1fr; 
+      gap: 48px;
+      width: 100%;
+      max-width: 500px; 
+      margin: 0;
+      text-align: left;
+      padding-bottom: 64px;
+    }
+    
+    .footer-big-title { margin-bottom: 32px; }
+    
+    .footer-email-large {
+      margin-bottom: 32px;
+      font-size: 24px;
+    }
+
+    .footer-right { 
+      flex-direction: column; 
+      gap: 48px; 
+      padding-top: 0;
+    }
+
+    .footer-nav-group {
+      gap: 20px;
+    }
+
+    .footer-bottom {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
     
     .footer-bottom-inner { 
       flex-direction: column; 
       align-items: flex-start;
-      gap: 20px; 
+      gap: 24px; 
       text-align: left; 
-      max-width: 500px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: 500px; 
+      margin: 0;
     }
+  }
+
+  @media (max-width: 768px) {
+    footer { padding: 60px 24px 0; }
   }
 </style>

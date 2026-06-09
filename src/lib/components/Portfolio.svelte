@@ -67,8 +67,7 @@
     position: relative;
     background: transparent; 
     color: var(--fg); 
-    padding-top: 100px; 
-    padding-bottom: 120px;
+    padding: 100px 56px 120px;
     overflow: hidden;
   }
 
@@ -212,7 +211,13 @@
 
   @media (max-width: 768px) {
     #work { padding-top: 60px; }
-    .work-grid { grid-template-columns: 1fr; gap: 24px; max-width: 500px; margin: 0 auto; }
+    .work-grid { 
+      grid-template-columns: 1fr; 
+      gap: 24px; 
+      max-width: 500px; 
+      margin: 0 auto; 
+      padding: 0; /* Reset desktop padding */
+    }
     .work-header { 
       margin-bottom: 48px; 
       flex-direction: column; 
@@ -222,6 +227,7 @@
       max-width: 500px;
       margin-left: auto;
       margin-right: auto;
+      padding: 0; /* Reset desktop padding */
     }
     .work-header-right { text-align: left; margin: 0; }
     .set-indicator { top: 12px; right: 12px; width: 18px; height: 18px; }

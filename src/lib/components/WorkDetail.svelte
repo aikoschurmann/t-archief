@@ -142,6 +142,7 @@
         </div>
       </section>
     {/if}
+
   </div>
 
   <div class="full-width-footer">
@@ -159,6 +160,7 @@
     align-items: center;
     color: var(--fg);
     transition: background 0.6s ease;
+    padding: 0 56px;
   }
 
   .hidden-measurer {
@@ -173,7 +175,7 @@
   .content-wrapper {
     max-width: 1200px;
     width: 100%;
-    padding: 0 0 120px;
+    padding: 0 0 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -181,7 +183,9 @@
   }
 
   .full-width-footer {
-    width: 100%;
+    width: calc(100% + 112px);
+    margin-left: -56px;
+    margin-right: -56px;
   }
 
   .detail-nav {
@@ -365,8 +369,14 @@
   }
 
   @media (max-width: 900px) {
-    .content-wrapper { padding: 0 24px 60px; }
-    .detail-nav { padding: 32px 24px 0; }
+    .work-detail { padding: 0 24px; }
+    .content-wrapper { padding: 0 0 60px; }
+    .full-width-footer {
+      width: calc(100% + 48px);
+      margin-left: -24px;
+      margin-right: -24px;
+    }
+    .detail-nav { padding: 32px 0 0; }
     .detail-header { margin: 1.5rem 0 2.5rem 0; gap: 1.5rem; }
     .header-main { gap: 1.5rem; }
     .header-meta { gap: 1.5rem; flex-wrap: wrap; padding-top: 0.5rem; }

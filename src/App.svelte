@@ -52,19 +52,31 @@
 
   // Track page views in GA4 and update title
   $effect(() => {
-    // 1. Update document title
+    // 1. Update document title & description
     let title = "Studio 't Archief | Portret & Eventfotografie";
+    let description = "Studio 't Archief legt jouw meest waardevolle momenten vast. Gevestigd in Brussel, gespecialiseerd in authentieke portret- en eventfotografie. Van moment naar beeld.";
+    
     if (activeWork) {
       title = `${activeWork.title} | Studio 't Archief`;
+      description = activeWork.description || `Bekijk het project ${activeWork.title} van Studio 't Archief.`;
     } else if (currentPath === '#work') {
       title = "Portfolio | Studio 't Archief";
+      description = "Bekijk onze geselecteerde projecten in portret- en eventfotografie.";
     } else if (currentPath === '#about') {
       title = "Over | Studio 't Archief";
+      description = "Onze visie op fotografie: van moment naar beeld.";
     } else if (currentPath === '#contact') {
       title = "Contact | Studio 't Archief";
+      description = "Start een project met Studio 't Archief. Beschikbaar voor portretsessies en eventfotografie.";
     }
     
     document.title = title;
+    
+    // Update meta description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', description);
+    }
 
     // 2. Track GA page view
     if (typeof (window as any).gtag === 'function') {
