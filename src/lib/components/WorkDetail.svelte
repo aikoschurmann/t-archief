@@ -385,4 +385,22 @@
     .description { font-size: 1rem; line-height: 1.5; }
     .detail-title { font-size: 2.5rem; }
   }
+
+  @media (max-width: 380px) {
+    .work-detail { padding: 0 16px; }
+    .full-width-footer {
+      width: calc(100% + 32px);
+      margin-left: -16px;
+      margin-right: -16px;
+    }
+    .detail-nav { padding: 24px 0 0; }
+    .detail-header { margin: 1rem 0 2rem 0; gap: 1rem; }
+    .detail-title { font-size: 2rem; }
+    .description { font-size: 0.9rem; }
+    .header-meta { gap: 1rem; flex-direction: column; align-items: center; }
+    .label { font-size: 9px; letter-spacing: 0.1em; }
+    .value { font-size: 11px; }
+    .long-text { margin-top: 3rem; padding: 3rem 0; }
+    .long-text p { font-size: 1rem; }
+  }
 </style>

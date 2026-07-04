@@ -143,3 +143,11 @@ hr.divider {
   section { padding: 80px 24px; }
   hr.divider { margin: 0 24px; }
 }
+
+/* ── VERY SMALL DEVICES ── */
+@media (max-width: 400px) {
+  section { padding: 60px 16px; }
+  hr.divider { margin: 0 16px; width: calc(100% - 32px); }
+  .section-label { letter-spacing: 0.15em; font-size: 10px; }
+  .section-title { font-size: clamp(32px, 8vw, 42px); letter-spacing: -0.02em; }
+}

@@ -262,4 +262,15 @@
     .hero-scroll { bottom: 120px; }
     .hero-sub { display: none; }
   }
+
+  @media (max-width: 380px) {
+    .hero-container { padding: 0 16px; }
+    .studio { font-size: 1.8rem; margin-bottom: 0; }
+    .apos { font-size: 4.5rem; }
+    .title { font-size: 3.5rem; }
+    .subtitle { font-size: 0.75rem; letter-spacing: 0.15em; margin-top: 0.5rem; }
+    .hero-ticker-wrap { height: 60px; }
+    .hero-scroll { bottom: 90px; }
+    .scroll-line { height: 30px; }
+  }
 </style>

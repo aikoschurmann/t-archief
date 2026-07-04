@@ -239,4 +239,13 @@
     }
     .work-title { font-size: 10px; }
   }
+
+  @media (max-width: 380px) {
+    #work { padding: 40px 16px 80px; }
+    .work-grid { gap: 16px; }
+    .work-header { margin-bottom: 32px; gap: 16px; }
+    .work-header-right { font-size: 12px; }
+    .title-pill-wrap { bottom: 0.5rem; left: 0.5rem; padding: 0.2rem 0.6rem; }
+    .work-title { font-size: 9px; letter-spacing: 0.03em; }
+  }
 </style>

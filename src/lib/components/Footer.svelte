@@ -276,4 +276,19 @@
   @media (max-width: 768px) {
     footer { padding: 60px 24px 0; }
   }
+
+  @media (max-width: 380px) {
+    footer { padding: 40px 16px 0; }
+    .footer-main { gap: 32px; padding-bottom: 40px; }
+    .footer-big-title { font-size: 32px; margin-bottom: 24px; }
+    .footer-email-large { font-size: 18px; margin-bottom: 24px; }
+    .pill-cta { padding: 10px 20px; }
+    .footer-right { gap: 32px; }
+    .nav-label { font-size: 9px; }
+    .footer-links a { font-size: 12px; }
+    .footer-bottom { padding: 24px 0; }
+    .footer-legal { font-size: 9px; flex-direction: column; gap: 8px; }
+    .footer-legal .sep { display: none; }
+    .footer-tag { font-size: 11px; }
+  }
 </style>

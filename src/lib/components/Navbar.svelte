@@ -70,4 +70,10 @@
   
   .nav-links a:hover { opacity: 1; }
 
+  @media (max-width: 380px) {
+    nav { top: 16px; padding: 0 16px; }
+    .nav-content { height: 48px; padding: 0 24px; }
+    .nav-links { gap: 24px; }
+    .nav-links a { font-size: 10px; letter-spacing: 0.15em; }
+  }
 </style>

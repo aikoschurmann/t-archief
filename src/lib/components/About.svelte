@@ -184,4 +184,12 @@
       line-height: 1.5;
     }
   }
+
+  @media (max-width: 380px) {
+    #about { padding: 60px 16px; }
+    .about-container { gap: 40px; }
+    .section-title { font-size: clamp(36px, 12vw, 42px); margin-bottom: 24px; }
+    .about-body { font-size: 16px; }
+    .about-quote { font-size: 20px; }
+  }
 </style>

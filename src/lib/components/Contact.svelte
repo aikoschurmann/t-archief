@@ -444,4 +444,15 @@
     .form-grid { grid-template-columns: 1fr; gap: 0; }
     .btn-submit { width: 100%; justify-content: center; }
   }
+
+  @media (max-width: 380px) {
+    #contact { padding: 60px 16px; }
+    .contact-container { gap: 40px; }
+    .contact-intro { font-size: 14px; }
+    .contact-detail { gap: 24px; }
+    .contact-item-value { font-size: 16px; }
+    .form-row { margin-bottom: 24px; }
+    .form-label { font-size: 9px; letter-spacing: 0.1em; }
+    .btn-submit { padding: 16px 24px; font-size: 10px; }
+  }
 </style>
