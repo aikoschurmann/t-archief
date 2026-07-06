@@ -60,7 +60,12 @@ def optimize_images():
                     h_size = int((float(img.size[1]) * float(w_percent)))
                     
                     resized = img.resize((width, h_size), Image.Resampling.LANCZOS)
-                    resized.save(out_path, 'WEBP', quality=QUALITY)
+                    
+                    save_kwargs = {'quality': QUALITY}
+                    if 'icc_profile' in img.info:
+                        save_kwargs['icc_profile'] = img.info['icc_profile']
+                        
+                    resized.save(out_path, 'WEBP', **save_kwargs)
                     
                     s = os.path.getsize(out_path)
                     file_optimized_size += s
@@ -72,7 +77,12 @@ def optimize_images():
                 h_size = int((float(img.size[1]) * float(w_percent)))
                 
                 blur_img = img.resize((BLUR_SIZE, h_size), Image.Resampling.LANCZOS)
-                blur_img.save(blur_path, 'WEBP', quality=10)
+                
+                blur_kwargs = {'quality': 10}
+                if 'icc_profile' in img.info:
+                    blur_kwargs['icc_profile'] = img.info['icc_profile']
+                    
+                blur_img.save(blur_path, 'WEBP', **blur_kwargs)
                 
                 s = os.path.getsize(blur_path)
                 file_optimized_size += s
