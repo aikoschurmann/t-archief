@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "t-archief",
+  "compatibility_date": "2026-07-06",
+  "main": "./worker/index.ts",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // The worker sees every request first so it can redirect www and http
+    "run_worker_first": true
+  },
+  // Custom domains: Cloudflare creates the DNS records and certificates for both
+  "routes": [
+    { "pattern": "tarchief.studio", "custom_domain": true },
+    { "pattern": "www.tarchief.studio", "custom_domain": true }
+  ],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

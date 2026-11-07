@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { cloudflare } from '@cloudflare/vite-plugin'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -61,5 +62,5 @@ function archiveEditor(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [svelte(), archiveEditor()],
+  plugins: [svelte(), cloudflare(), archiveEditor()],
 })
