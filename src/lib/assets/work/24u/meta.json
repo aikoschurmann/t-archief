@@ -1,0 +1,18 @@
+{
+  "order": 8,
+  "image_order": [
+    "IMG_1101.PNG",
+    "IMG_1110.jpg",
+    "IMG_1100.PNG",
+    "IMG_1104.PNG",
+    "24u-20.jpg"
+  ],
+  "home": [
+    "IMG_1100.PNG",
+    "24u-20.jpg",
+    "IMG_1104.PNG"
+  ],
+  "hidden": [
+    "IMG_1101.PNG"
+  ]
+}

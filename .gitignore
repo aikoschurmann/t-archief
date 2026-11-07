@@ -27,3 +27,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Original photos stay local; only the optimised variants made by
+# process_images_optimized.py (*_sm / *_md / *_blur.webp) are committed
+src/lib/assets/work/**/*.[jJ][pP][gG]
+src/lib/assets/work/**/*.[jJ][pP][eE][gG]
+src/lib/assets/work/**/*.[pP][nN][gG]

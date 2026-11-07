@@ -1,0 +1,308 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import type { WorkItem } from '../utils/workLoader';
+  import { palette, displaySrc, srcsetFor, pad, dominantColour } from './media';
+  import Strip from './Strip.svelte';
+
+  let { item, colour = 'var(--cell)', onIndex }: { item: WorkItem; colour?: string; onIndex: (i: number) => void } = $props();
+
+  let track: HTMLDivElement;
+  let current = $state(0);
+  let swatches: string[] = $state([]);
+
+  // Smoothed horizontal scrolling: wheel input moves a target, the track eases towards it
+  let pos = 0;
+  let target = 0;
+  let raf = 0;
+
+  $effect(() => {
+    palette(item.images, 5).then(c => (swatches = c));
+  });
+
+  $effect(() => onIndex(current));
+
+  // Phones: one photo at a time in a vertical strip, with a dot per photo in its own colour
+  let viewW = $state(1200);
+  let viewH = $state(800);
+  let mobile = $derived(viewW <= 768);
+  let mStep = $state(0);
+  let photoColours: Record<string, string> = $state({});
+  const ROW = 32;
+
+  $effect(() => {
+    for (const img of item.images) dominantColour(img).then(c => (photoColours[img] = c));
+  });
+
+  $effect(() => {
+    if (mobile) current = mStep;
+  });
+
+  let rows = $derived(
+    Array.from({ length: Math.ceil(viewH / ROW) + 2 }, (_, i) => mStep - 1 + i).filter(k => k >= 0 && k < item.images.length)
+  );
+
+  function slides() {
+    return Array.from(track.children) as HTMLElement[];
+  }
+
+  function glide() {
+    const diff = target - pos;
+    if (Math.abs(diff) < 0.5) {
+      pos = target;
+      track.scrollLeft = pos;
+      raf = 0;
+      return;
+    }
+    pos += diff * 0.1;
+    track.scrollLeft = pos;
+    raf = requestAnimationFrame(glide);
+  }
+
+  function scrollToX(x: number) {
+    if (!raf) pos = track.scrollLeft;
+    target = Math.max(0, Math.min(track.scrollWidth - track.clientWidth, x));
+    if (!raf) raf = requestAnimationFrame(glide);
+  }
+
+  function goTo(i: number) {
+    const all = slides();
+    const index = Math.max(0, Math.min(all.length - 1, i));
+    scrollToX(all[index].offsetLeft - track.offsetLeft - parseFloat(getComputedStyle(track).paddingLeft));
+  }
+
+  function onScroll() {
+    const all = slides();
+    const x = track.scrollLeft;
+    let best = 0;
+    all.forEach((el, i) => {
+      if (Math.abs(el.offsetLeft - track.offsetLeft - x) < Math.abs(all[best].offsetLeft - track.offsetLeft - x)) best = i;
+    });
+    // At the far right the last slides can't snap to the left edge; treat the end as the last slide
+    if (x + track.clientWidth >= track.scrollWidth - 8) best = all.length - 1;
+    current = best;
+  }
+
+  // Vertical wheel and trackpad movement both scroll the track sideways
+  function onWheel(e: WheelEvent) {
+    if (!desktop()) return;
+    e.preventDefault();
+    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    const step = e.deltaMode === 1 ? delta * 40 : delta;
+    scrollToX((raf ? target : track.scrollLeft) + step * 1.2);
+  }
+
+  function onKey(e: KeyboardEvent) {
+    if (e.key === 'Escape') location.hash = '#/';
+    // Phones: the strip handles arrow keys itself
+    if (mobile) return;
+    if (e.key === 'ArrowRight') goTo(current + 1);
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+  }
+
+  function desktop() {
+    return window.matchMedia('(min-width: 769px)').matches;
+  }
+
+  onMount(() => {
+    window.scrollTo(0, 0);
+    // Listen on the whole window so scrolling works wherever the cursor is
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      cancelAnimationFrame(raf);
+    };
+  });
+</script>
+
+<svelte:window onkeydown={onKey} bind:innerWidth={viewW} bind:innerHeight={viewH} />
+
+{#if mobile}
+  <div class="m-dots" aria-hidden="true">
+    {#each rows as k (k)}
+      <span
+        class="m-dot"
+        class:active={k === mStep}
+        class:faded={k - mStep > 2}
+        style:background={photoColours[item.images[k]] ?? colour}
+        style:transform="translateY({(k - mStep) * ROW + 12}px)"
+      ></span>
+    {/each}
+  </div>
+
+  <div class="m-top grid">
+    <span class="cell m-title">{item.title}</span>
+    <span class="cell m-counter">{pad(mStep + 1)} / {pad(item.images.length)}</span>
+  </div>
+
+  <Strip
+    bind:step={mStep}
+    count={item.images.length}
+    itemAt={i => ({ src: item.images[i], alt: `${item.title} — ${pad(i + 1)}` })}
+    fit="contain"
+    {viewH}
+  />
+{/if}
+
+<div class="project">
+  <div class="credits grid">
+    {#if item.meta?.client}
+      <div class="cell stacked c1"><span>Klant</span><span>{item.meta.client}</span></div>
+    {/if}
+    {#if item.meta?.location}
+      <div class="cell stacked c2"><span>Locatie</span><span>{item.meta.location}</span></div>
+    {/if}
+  </div>
+
+  <div class="meta grid">
+    <span class="name">
+      <span class="dot" style:background={colour}></span>
+      <span class="cell title">{item.title}</span>
+    </span>
+    <span class="cell counter">{pad(current + 1)} / {pad(item.images.length)}</span>
+    <span class="cell cat">{item.meta?.category ?? (item.type === 'set' ? 'Serie' : 'Beeld')}</span>
+    {#if item.meta?.year ?? item.meta?.date ?? item.description}
+      <span class="cell year">{item.meta?.year ?? item.meta?.date ?? item.description}</span>
+    {/if}
+    <span class="swatches">
+      {#each swatches as s}
+        <span class="swatch" style:background={s}></span>
+      {/each}
+    </span>
+  </div>
+
+  <div class="track" bind:this={track} onscroll={onScroll}>
+    {#each item.images as img, i}
+      <button class="slide" onclick={() => goTo(i === current ? i + 1 : i)} aria-label="Beeld {pad(i + 1)}">
+        <img
+          src={displaySrc(img)}
+          srcset={srcsetFor(img)}
+          sizes="(max-width: 768px) 100vw, 70vw"
+          alt="{item.title} — {pad(i + 1)}"
+          loading={i < 3 ? 'eager' : 'lazy'}
+        />
+      </button>
+    {/each}
+  </div>
+</div>
+
+<style>
+  .project {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: calc(var(--gap) * 2 + var(--bar));
+    padding-bottom: calc(var(--gap) * 2 + var(--bar));
+  }
+
+  .credits {
+    align-items: start;
+    position: fixed;
+    top: var(--gap);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    pointer-events: none;
+  }
+  .stacked {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    height: auto;
+  }
+  .c1 { grid-column: 1 / 3; }
+  .c2 { grid-column: 3 / 5; }
+
+  .meta {
+    margin-top: auto;
+    margin-bottom: var(--gap);
+    align-items: center;
+  }
+  .name {
+    grid-column: 1 / 7;
+    display: flex;
+    gap: var(--gap);
+    min-width: 0;
+  }
+  .title { flex: 1; min-width: 0; }
+  .dot {
+    flex: none;
+    width: var(--bar);
+    height: var(--bar);
+    border-radius: 50%;
+    transition: background 0.6s ease;
+  }
+  .cat { grid-column: 7 / 9; }
+  .year { grid-column: 9 / 11; }
+  .swatches {
+    grid-column: 11 / 13;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    height: var(--bar);
+  }
+  .swatch { transition: background 0.6s ease; }
+
+  .track {
+    height: min(70vh, calc(100vh - 12rem));
+    display: flex;
+    gap: var(--gap);
+    padding: 0 var(--gap);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .track::-webkit-scrollbar { display: none; }
+
+  .slide {
+    flex: none;
+    height: 100%;
+    cursor: e-resize;
+    padding: 0;
+  }
+  .slide img {
+    height: 100%;
+    width: auto;
+    display: block;
+    background: var(--cell);
+  }
+
+  /* The counter lives in the top bar on desktop */
+  .counter { display: none; }
+
+  /* Phones: the strip above replaces the desktop layout */
+  .m-dots {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 44px;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 40;
+    pointer-events: none;
+  }
+  .m-dot {
+    position: absolute;
+    top: 0;
+    left: var(--gap);
+    width: var(--bar);
+    height: var(--bar);
+    border-radius: 50%;
+    transition: transform 700ms cubic-bezier(0.33, 1, 0.68, 1), border-radius var(--speed) var(--ease),
+      opacity var(--speed) var(--ease), filter var(--speed) var(--ease);
+  }
+  .m-dot.active { border-radius: 0; }
+  .m-dot.faded { opacity: 0; filter: blur(1px); }
+
+  .m-top {
+    position: fixed;
+    top: var(--gap);
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+  .m-title { grid-column: 1 / 6; grid-row: 1; margin-left: calc(var(--bar) + var(--gap)); }
+  .m-counter { grid-column: 6 / 7; grid-row: 1; justify-content: center; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 768px) {
+    .project { display: none; }
+  }
+</style>

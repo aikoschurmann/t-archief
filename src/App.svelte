@@ -1,22 +1,43 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Navbar from './lib/components/Navbar.svelte';
-  import Hero from './lib/components/Hero.svelte';
-  import About from './lib/components/About.svelte';
-  import Portfolio from './lib/components/Portfolio.svelte';
-  import Contact from './lib/components/Contact.svelte';
-  import Footer from './lib/components/Footer.svelte';
-  import WorkDetail from './lib/components/WorkDetail.svelte';
-  import { loadWorks } from './lib/utils/workLoader';
+  import TopBar from './lib/archive/TopBar.svelte';
+  import BottomBar from './lib/archive/BottomBar.svelte';
+  import InfoView from './lib/archive/InfoView.svelte';
+  import HomeView from './lib/archive/HomeView.svelte';
+  import EditView from './lib/archive/EditView.svelte';
+  import ProjectView from './lib/archive/ProjectView.svelte';
+  import { pad, projectColours } from './lib/archive/media';
+  import { loadWorks, type WorkItem } from './lib/utils/workLoader';
 
   let currentPath = $state(window.location.hash);
-  let works = loadWorks();
+  let allWorks = loadWorks();
+  // Hidden projects, and projects whose images are all hidden, don't appear on the site
+  // (the editor still sees them)
+  let works = allWorks.filter(w => w.visible && w.images.length > 0);
+
+  let slide = $state(0);
+  let homeSlide = $state(0);
+  let homeWork: WorkItem | undefined = $state();
+  let colours: Record<string, string> = $state({});
+
+  // One dot colour per project, shared by every page
+  $effect(() => {
+    projectColours(works).then(c => (colours = c));
+  });
   
   // Find active work item if in a work route
   let activeWork = $derived(
     currentPath.startsWith('#/work/') 
       ? works.find(w => w.id === currentPath.replace('#/work/', '')) 
       : null
+  );
+
+  let page = $derived(
+    import.meta.env.DEV && currentPath === '#/edit' ? 'edit'
+      : activeWork ? 'project'
+      // Old section links (#about, #contact) land on the info page too
+      : ['#/info', '#about', '#contact'].includes(currentPath) ? 'info'
+      : 'home'
   );
 
   onMount(() => {
@@ -35,39 +56,24 @@
     };
   });
 
-  // Handle scrolling to sections
+  // Reset the project counter on navigation
   $effect(() => {
-    if (currentPath && !currentPath.startsWith('#/work/')) {
-      const id = currentPath.replace('#', '');
-      if (id) {
-        setTimeout(() => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 50);
-      }
-    }
+    currentPath;
+    slide = 0;
   });
 
   // Track page views in GA4 and update title
   $effect(() => {
     // 1. Update document title & description
-    let title = "Studio 't Archief | Portret & Eventfotografie";
-    let description = "Studio 't Archief in Brussel: authentieke portret- en eventfotografie. Wij vertalen jouw verhaal van moment naar beeld, zodat herinneringen nooit verloren gaan.";
+    let title = "Studio 't Archief | Event-, concert- & cultuurfotografie";
+    let description = "Studio 't Archief: event-, concert- en cultuurfotografie in Leuven en Brussel. Van moment naar beeld, zodat het niet verloren gaat.";
     
     if (activeWork) {
       title = `${activeWork.title} | Studio 't Archief`;
       description = activeWork.description || `Bekijk het project ${activeWork.title} van Studio 't Archief.`;
-    } else if (currentPath === '#work') {
-      title = "Portfolio | Studio 't Archief";
-      description = "Bekijk onze geselecteerde projecten in portret- en eventfotografie.";
-    } else if (currentPath === '#about') {
-      title = "Over | Studio 't Archief";
-      description = "Onze visie op fotografie: van moment naar beeld.";
-    } else if (currentPath === '#contact') {
-      title = "Contact | Studio 't Archief";
-      description = "Start een project met Studio 't Archief. Beschikbaar voor portretsessies en eventfotografie.";
+    } else if (page === 'info') {
+      title = "Info | Studio 't Archief";
+      description = "Studio 't Archief: event-, concert- en cultuurfotografie in Leuven en Brussel. Stuur me een DM of een mail.";
     }
     
     document.title = title;
@@ -97,27 +103,41 @@
 </script>
 
 <main>
-  {#if activeWork}
-    <WorkDetail item={activeWork} />
+  {#if page === 'edit'}
+    <EditView works={allWorks} />
   {:else}
-    <Navbar />
-    <Hero />
-    <About />
-    <Portfolio />
-    <Contact />
-    <Footer />
+  {#if page === 'home'}
+    <TopBar
+      {page}
+      href={homeWork?.href}
+      counter={`${pad(homeSlide + 1)} / ${pad(works.length)}`}
+    />
+  {:else}
+    <TopBar
+      {page}
+      counter={activeWork ? `${pad(slide + 1)} / ${pad(activeWork.images.length)}` : ''}
+    />
+  {/if}
+
+  {#if activeWork}
+    {#key activeWork.id}
+      <ProjectView item={activeWork} colour={colours[activeWork.id]} onIndex={i => (slide = i)} />
+    {/key}
+  {:else if page === 'info'}
+    <InfoView {works} />
+  {:else}
+    <HomeView {works} {colours} bind:current={homeSlide} bind:work={homeWork} />
+  {/if}
+
+  <BottomBar {page} back={!!activeWork} />
   {/if}
 </main>
 
 <style>
   main {
     width: 100%;
+    min-height: 100vh;
     background: var(--bg);
-    overflow-x: hidden;
     position: relative;
-    scroll-behavior: smooth;
-    display: flex;
-    flex-direction: column;
-    transition: background 0.6s ease;
   }
 </style>

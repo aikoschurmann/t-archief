@@ -1,30 +1,64 @@
 /* Theme Variables */
 :root {
-  --brand: 'Cormorant Garamond', serif;
-  --body: 'Plus Jakarta Sans', sans-serif;
-  
-  /* Depth & FX (Shadowless) */
-  --glass-blur: 16px;
-  --noise-opacity: 0.03;
+  --body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --brand: var(--body);
+  --noise-opacity: 0;
 
-  /* Cool Neutral Theme (Contemporary/Editorial) - Now Default */
-  --bg: #0a0a0a;
-  --bg-alt: #141414;
-  --fg: #ffffff;
-  --mid: #666666;
-  --acc: #5d8ab8; /* Slate Blue Accent */
-  --line: rgba(255, 255, 255, 0.1);
-  --nav-bg: rgba(10, 10, 10, 0.85);
+  --bg: #ffffff;
+  --fg: #000000;
+  --mid: #8c8c8c;
+  --line: rgba(0, 0, 0, 0.08);
 
-  /* Semantic Aliases */
-  --cream: var(--bg);
-  --ink: var(--fg);
-  --warm-mid: var(--mid);
-  --accent: var(--acc);
-  --light-line: var(--line);
-  --footer-bg: rgba(0, 0, 0, 0.4);
-  --footer-fg: var(--fg);
-  --overlay-bg: rgba(0, 0, 0, 0.9);
+  /* Archive grid */
+  --gap: 12px;
+  --bar: 20px;
+  --label: 12px;
+  --cell: #f0f0f0;
+  --cell-hover: #e4e4e4;
+  --cell-solid: #f0f0f0;
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --speed: 200ms;
+  --slow: 500ms;
+}
+
+/* ── ARCHIVE GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gap);
+  padding: 0 var(--gap);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  min-height: var(--bar);
+  padding: 0 6px;
+  background: var(--cell);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: var(--label);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--speed) var(--ease);
+}
+
+.cell.current {
+  opacity: 0.5;
+}
+
+@media (hover: hover) {
+  a.cell:hover, button.cell:hover {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Phones: 6 columns, 6px apart (measured from the reference site) */
+  .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 6px; }
 }
 
 *, *::before, *::after { 

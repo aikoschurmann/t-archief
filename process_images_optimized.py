@@ -23,10 +23,12 @@ def optimize_images():
     print(f"🚀 Starting image optimization in {INPUT_DIR}...")
     
     # Supported extensions
-    extensions = ['*.jpg', '*.jpeg', '*.png']
+    extensions = ['*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG']
     image_paths = []
     for ext in extensions:
         image_paths.extend(glob.glob(os.path.join(INPUT_DIR, '**', ext), recursive=True))
+    # On case-insensitive filesystems both patterns can match the same file
+    image_paths = sorted(set(image_paths))
 
     stats = {
         'count': 0,
@@ -39,6 +41,12 @@ def optimize_images():
     for path in image_paths:
         # Skip already optimized images
         if any(f"_{suffix}." in path for suffix in ['sm', 'md', 'blur']):
+            continue
+
+        # Skip images that already have all their variants
+        base = os.path.splitext(path)[0]
+        if all(os.path.exists(f"{base}_{suffix}.webp") for suffix in ['sm', 'md', 'blur']):
+            stats['skipped'] += 1
             continue
 
         orig_size = os.path.getsize(path)

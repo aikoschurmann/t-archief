@@ -1,4 +1,21 @@
 {
-    "cover" : "DSC00991.jpg",
-    "order" : 2
+  "cover": "DSC00991.jpg",
+  "order": 4,
+  "image_order": [
+    "DSC00990.jpg",
+    "DSC00994.jpg",
+    "DSC00991.jpg",
+    "DSC00992.jpg",
+    "DSC01070.jpg",
+    "DSC01084.jpg"
+  ],
+  "home": [
+    "DSC00991.jpg",
+    "DSC00994.jpg",
+    "DSC00990.jpg"
+  ],
+  "hidden": [
+    "DSC01070.jpg",
+    "DSC01084.jpg"
+  ]
 }

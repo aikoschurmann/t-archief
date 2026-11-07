@@ -1,5 +1,15 @@
 {
-    "description": "(stalking people)",
-    "order": 2,
-    "cover" : "DSC00279.jpg"
+  "description": "(stalking people)",
+  "order": 7,
+  "cover": "DSC00279.jpg",
+  "image_order": [
+    "DSC00274.jpg",
+    "DSC00279.jpg",
+    "DSC00287.jpg"
+  ],
+  "home": [
+    "DSC00274.jpg",
+    "DSC00279.jpg"
+  ],
+  "visible": false
 }

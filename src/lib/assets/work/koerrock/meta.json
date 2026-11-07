@@ -1,0 +1,17 @@
+{
+  "order": 5,
+  "image_order": [
+    "Koerrock-37.jpg",
+    "Koerrock-22.PNG",
+    "Koerrock-14 2.PNG",
+    "Koerrock-17.jpg",
+    "Koerrock-32.PNG"
+  ],
+  "home": [
+    "Koerrock-37.jpg",
+    "Koerrock-14 2.PNG"
+  ],
+  "hidden": [
+    "Koerrock-17.jpg"
+  ]
+}
