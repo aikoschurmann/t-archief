@@ -1,22 +1,20 @@
 <script lang="ts">
   let {
     page = '',
-    href = '',
+    back = false,
     counter = ''
   }: {
     page?: string;
-    href?: string;
+    back?: boolean;
     counter?: string;
   } = $props();
 </script>
 
+<!-- "Home", or "Terug" on project pages, like on phones. The page you're on is the black cell. -->
 <header class="bar grid">
-  {#if href}
-    <a {href} class="cell see">Bekijk project</a>
-  {/if}
-  <a href="#/" class="cell brand">Studio 't Archief</a>
-  <a href="#/info" class="cell info" class:current={page === 'info'}>Info</a>
-  <a href="#/" class="cell home" class:current={page === 'home'}>Home</a>
+  <a href="#/" class="cell brand" class:current={page === 'home'} aria-current={page === 'home' ? 'page' : undefined}>{back ? '← Terug' : 'Home'}</a>
+  <a href="#/index" class="cell index" class:current={page === 'index'} aria-current={page === 'index' ? 'page' : undefined}>Index</a>
+  <a href="#/info" class="cell info" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined}>Info</a>
   {#if counter}
     <span class="cell counter">{counter}</span>
   {/if}
@@ -32,12 +30,11 @@
   }
   .bar > * { grid-row: 1; }
 
-  .see { grid-column: 5 / 7; }
-  .brand { grid-column: 7 / 9; }
+  .brand { grid-column: 5 / 7; }
+  .index { grid-column: 7 / 9; }
   .info { grid-column: 9 / 11; }
-  .home { grid-column: 11 / 12; }
   .counter {
-    grid-column: 12 / 13;
+    grid-column: 11 / 13;
     justify-self: start;
     font-variant-numeric: tabular-nums;
   }

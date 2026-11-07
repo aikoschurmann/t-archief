@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { WorkItem } from '../utils/workLoader';
-  import { palette, displaySrc, srcsetFor, pad, photoDotColours } from './media';
+  import { palette, displaySrc, srcsetFor, pad, photoDotColours, swatch, aspectRatio } from './media';
   import Strip from './Strip.svelte';
 
   let { item, colour = 'var(--cell)', onIndex }: { item: WorkItem; colour?: string; onIndex: (i: number) => void } = $props();
@@ -16,7 +16,7 @@
   let raf = 0;
 
   $effect(() => {
-    palette(item.images, 5).then(c => (swatches = c));
+    swatches = palette(item.images, 5).map(swatch);
   });
 
   $effect(() => onIndex(current));
@@ -27,7 +27,15 @@
   let mobile = $derived(viewW <= 768);
   let mStep = $state(0);
   let photoColours: Record<string, string> = $state({});
+  let ratios: Record<string, number> = $state({});
+
+  $effect(() => {
+    for (const img of item.images) aspectRatio(img).then(r => (ratios[img] = r));
+  });
   const ROW = 32;
+  let details = $derived(
+    [item.meta?.category, item.meta?.year ?? item.meta?.date, item.meta?.client, item.meta?.location].filter(Boolean)
+  );
 
   $effect(() => {
     photoDotColours(item.images).then(list => {
@@ -72,7 +80,16 @@
     scrollToX(all[index].offsetLeft - track.offsetLeft - parseFloat(getComputedStyle(track).paddingLeft));
   }
 
+  // Desktop: a thin bar under the track shows how much of the project is in view, and where
+  let bar = $state({ size: 1, at: 0 });
+
+  function measure() {
+    if (!track?.scrollWidth) return;
+    bar = { size: track.clientWidth / track.scrollWidth, at: track.scrollLeft / track.scrollWidth };
+  }
+
   function onScroll() {
+    measure();
     const all = slides();
     const x = track.scrollLeft;
     let best = 0;
@@ -116,7 +133,7 @@
   });
 </script>
 
-<svelte:window onkeydown={onKey} bind:innerWidth={viewW} bind:innerHeight={viewH} />
+<svelte:window onkeydown={onKey} onresize={measure} bind:innerWidth={viewW} bind:innerHeight={viewH} />
 
 {#if mobile}
   <div class="m-dots" aria-hidden="true">
@@ -131,15 +148,19 @@
     {/each}
   </div>
 
+  <!-- Black title and a details row, so a project doesn't look like the home page -->
   <div class="m-top grid">
-    <span class="cell m-title">{item.title}</span>
+    <span class="cell current m-title">{item.title}</span>
     <span class="cell m-counter">{pad(mStep + 1)} / {pad(item.images.length)}</span>
+    {#if details.length}
+      <span class="cell m-details">{details.join(' · ')}</span>
+    {/if}
   </div>
 
   <Strip
     bind:step={mStep}
     count={item.images.length}
-    itemAt={i => ({ src: item.images[i], alt: `${item.title} — ${pad(i + 1)}` })}
+    itemAt={i => ({ src: item.images[i], alt: `${item.title} — ${pad(i + 1)}`, ratio: ratios[item.images[i]] })}
     fit="contain"
     {viewH}
   />
@@ -183,10 +204,15 @@
           sizes="(max-width: 768px) 100vw, 70vw"
           alt="{item.title} — {pad(i + 1)}"
           loading={i < 3 ? 'eager' : 'lazy'}
+          onload={measure}
         />
       </button>
     {/each}
   </div>
+
+  <span class="scrollbar" class:hidden={bar.size >= 1} aria-hidden="true">
+    <span class="thumb" style:width="{bar.size * 100}%" style:left="{bar.at * 100}%"></span>
+  </span>
 </div>
 
 <style>
@@ -269,6 +295,21 @@
     background: var(--cell);
   }
 
+  .scrollbar {
+    position: relative;
+    height: 2px;
+    margin: var(--gap) var(--gap) 0;
+    background: var(--cell);
+    transition: opacity var(--speed) var(--ease);
+  }
+  .scrollbar.hidden { opacity: 0; }
+  .thumb {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--fg);
+  }
+
   /* The counter lives in the top bar on desktop */
   .counter { display: none; }
 
@@ -305,6 +346,7 @@
   }
   .m-title { grid-column: 1 / 6; grid-row: 1; margin-left: calc(var(--bar) + var(--gap)); }
   .m-counter { grid-column: 6 / 7; grid-row: 1; justify-content: center; font-variant-numeric: tabular-nums; }
+  .m-details { grid-column: 1 / 7; grid-row: 2; margin: 6px 0 0 calc(var(--bar) + var(--gap)); }
 
   @media (max-width: 768px) {
     .project { display: none; }

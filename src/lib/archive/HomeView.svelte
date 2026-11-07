@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { cubicInOut } from 'svelte/easing';
   import type { WorkItem } from '../utils/workLoader';
   import { aspectRatio } from './media';
@@ -13,9 +14,9 @@
     colours = {}
   }: { works: WorkItem[]; current?: number; work?: WorkItem; colours?: Record<string, string> } = $props();
 
-  // Ever-increasing position in the cycle; the visible project is `step` modulo the count.
-  // Keeping it unbounded gives every dot a stable key, so the column can glide instead of jump.
-  let step = $state(0);
+  // Index of the visible project. It starts at `current`, so coming back from a project lands
+  // on that project.
+  let step = $state(untrack(() => current));
   let viewH = $state(800);
   let viewW = $state(1200);
   // Phones: a vertical photo strip and a short dot column (measured from the reference site)
@@ -38,11 +39,9 @@
   // Projects follow the order set in the editor (#/edit), stored as `order` in meta.json
   let ordered = $derived(works);
 
-  const mod = (n: number) => ((n % ordered.length) + ordered.length) % ordered.length;
-
   $effect(() => {
     if (!ordered.length) return;
-    current = mod(step);
+    current = Math.min(step, ordered.length - 1);
     work = ordered[current];
   });
 
@@ -82,16 +81,9 @@
     return frames.map((src, i) => ({ src, width: natural[i] * shrink }));
   });
 
-  // One row per position in the cycle, from just above the screen to just below it. The row
-  // at `step` is the current project: its dot becomes the square in the top-left corner.
-  let rows = $derived.by(() => {
-    if (!ordered.length) return [];
-    const count = Math.ceil(viewH / row) + 2;
-    return Array.from({ length: count }, (_, i) => {
-      const key = step - 1 + i;
-      return { key, w: ordered[mod(key)] };
-    });
-  });
+  // One dot per project. The current one becomes the square in the top-left corner; the ones
+  // before it slide up out of view.
+  let rows = $derived(ordered.map((w, key) => ({ key, w })));
 
   // Title text rolls: the old line rises out, the new one rises in from below
   function rollIn(_node: Element) {
@@ -104,7 +96,7 @@
   }
 
   function go(delta: number) {
-    step += delta;
+    step = Math.max(0, Math.min(ordered.length - 1, step + delta));
   }
 
   // Desktop: one wheel/trackpad swipe = one project (phones: the strip handles input itself)
@@ -156,19 +148,32 @@
       onmouseenter={() => (hoveredKey = key)}
       onmouseleave={() => (hoveredKey = null)}
       aria-label={w.title}
-      tabindex={key > step && key - step < ordered.length ? 0 : -1}
+      tabindex={key === step ? -1 : 0}
     >
       <span class="dot" style:background={colours[w.id]}></span>
       <span class="label" class:show={hoveredKey === key && key !== step}>{w.title}</span>
     </button>
   {/each}
+  <!-- Desktop: under the last dot, says there are more projects below, until the last one -->
+  {#if !mobile}
+    <span
+      class="more"
+      class:hidden={step >= ordered.length - 1}
+      style:transform="translateY({(ordered.length - step) * row + firstRow}px)"
+      aria-hidden="true"
+    >
+      <svg class="arrow" width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M5 0v12M1 8l4 4 4-4" />
+      </svg>
+    </span>
+  {/if}
 </div>
 
 {#if work}
   <div class="title-bar grid">
     <a href={work.href} class="title cell">
       {#key work.id}
-        <span class="line" in:rollIn out:rollOut>{work.title}</span>
+        <span class="line" in:rollIn out:rollOut>{work.title}<span class="go">&nbsp;→</span></span>
       {/key}
     </a>
     <span class="cell counter">{String(current + 1).padStart(2, '0')} / {String(ordered.length).padStart(2, '0')}</span>
@@ -178,9 +183,11 @@
 {#if mobile}
   <Strip
     bind:step
-    loop
     count={ordered.length}
-    itemAt={i => ({ src: ordered[i].home?.[0] ?? ordered[i].url, alt: ordered[i].title, href: ordered[i].href })}
+    itemAt={i => {
+      const src = ordered[i].home?.[0] ?? ordered[i].url;
+      return { src, alt: ordered[i].title, href: ordered[i].href, ratio: ratios[src] };
+    }}
     {viewH}
   />
 {:else}
@@ -189,7 +196,7 @@
     <a href={work.href} class="block" bind:clientWidth={blockW} bind:clientHeight={blockH}>
       {#each layout as { src, width } (src)}
         <span class="tile" style:width="{width}px">
-          <Frame {src} alt={work.title} sizes="33vw" />
+          <Frame {src} alt={work.title} sizes="50vw" />
         </span>
       {/each}
     </a>
@@ -229,6 +236,29 @@
     transition: border-radius var(--speed) var(--ease);
   }
   .row:hover .dot, .row.active .dot { border-radius: 0; }
+
+  .more {
+    position: absolute;
+    top: 0;
+    left: var(--gap);
+    width: var(--bar);
+    height: var(--bar);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--mid);
+    transition: transform 700ms cubic-bezier(0.33, 1, 0.68, 1), opacity var(--slow) var(--ease);
+  }
+  .more.hidden { opacity: 0; }
+  .arrow { animation: bob 1.6s var(--ease) infinite; }
+
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .arrow { animation: none; }
+  }
 
   .label {
     position: absolute;
@@ -277,8 +307,8 @@
   }
 
   .block {
-    grid-column: 3 / 11;
-    height: 50vh;
+    grid-column: 2 / 12;
+    height: 64vh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -290,6 +320,7 @@
     max-width: 100%;
     flex: none;
   }
+
 
   @media (max-width: 768px) {
     .label { display: none; }

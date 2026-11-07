@@ -1,6 +1,8 @@
 import os
 from PIL import Image
+import colorsys
 import glob
+import json
 import time
 
 # Configuration
@@ -126,5 +128,74 @@ def optimize_images():
         print(f"⚠️  Errors:             {stats['errors']}")
     print("="*40)
 
+def dominant_colour(img):
+    """Dominant colour, as media.ts used to measure it in the browser: pixels are grouped into
+    hue families and the strongest family wins; colourless photos get a grey."""
+    pixels = list(img.resize((24, 24), Image.BOX).getdata())
+    bins = [[0.0, 0.0, 0.0, 0.0] for _ in range(24)]
+    grey = [0, 0, 0]
+    for r, g, b in pixels:
+        grey[0] += r; grey[1] += g; grey[2] += b
+        mx, mn = max(r, g, b), min(r, g, b)
+        s = (mx - mn) / mx if mx else 0
+        l = (mx + mn) / 510
+        if s < 0.18 or l < 0.06 or l > 0.92:
+            continue
+        h = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)[0] * 360
+        bin = bins[int(h / 15) % 24]
+        bin[0] += r * s; bin[1] += g * s; bin[2] += b * s; bin[3] += s
+
+    # Weigh each bin together with its neighbours so a hue split across two bins still wins
+    best, best_w = -1, 0
+    for i in range(24):
+        w = bins[i][3] + 0.5 * (bins[(i + 1) % 24][3] + bins[(i - 1) % 24][3])
+        if w > best_w:
+            best, best_w = i, w
+    # The bar is low on purpose: a red costume on a dark stage is a small part of the picture
+    if best < 0 or best_w < len(pixels) * 0.012:
+        v = round(min(150, max(90, sum(grey) / (3 * len(pixels)))))
+        return f"rgb({v}, {v}, {v})"
+    r, g, b, w = bins[best]
+    return f"rgb({round(r / w)}, {round(g / w)}, {round(b / w)})"
+
+
+def colour_buckets(img, keep=24):
+    """The photo's colours pooled into buckets, heaviest first, as [r, g, b, weight]. Colourful
+    pixels weigh much more than neutral ones; media.ts picks distinct palettes from these."""
+    sums = {}
+    for r, g, b in img.resize((48, 48), Image.BOX).getdata():
+        mx, mn = max(r, g, b), min(r, g, b)
+        sat = (mx - mn) / mx if mx else 0
+        light = (mx + mn) / 510
+        # Very dark and very light pixels carry little colour information
+        w = (0.2 + 4 * sat * sat) * (0.3 if light < 0.08 or light > 0.95 else 1)
+        key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5)
+        s = sums.setdefault(key, [0.0, 0.0, 0.0, 0.0])
+        s[0] += r * w; s[1] += g * w; s[2] += b * w; s[3] += w
+    buckets = sorted(sums.values(), key=lambda s: -s[3])[:keep]
+    return [[round(s[0] / s[3]), round(s[1] / s[3]), round(s[2] / s[3]), round(s[3], 2)] for s in buckets]
+
+
+def write_colours():
+    """Measure every photo once, so every browser shows the same dot colours (Safari adds noise
+    to canvas pixel reads, which made colours measured in the browser differ per browser)."""
+    colours = {}
+    for path in sorted(glob.glob(os.path.join(INPUT_DIR, '*', '*_sm.webp'))):
+        folder = os.path.basename(os.path.dirname(path))
+        name = os.path.basename(path)[:-len('_sm.webp')]
+        with Image.open(path) as img:
+            rgb = img.convert('RGB')
+            colours[f"{folder}/{name}"] = {
+                'ratio': round(img.width / img.height, 4),
+                'dominant': dominant_colour(rgb),
+                'buckets': colour_buckets(rgb)
+            }
+    out = os.path.join(INPUT_DIR, 'colours.json')
+    with open(out, 'w') as f:
+        json.dump(colours, f, separators=(',', ':'))
+    print(f"🎨 Colours measured for {len(colours)} photos → {out}")
+
+
 if __name__ == "__main__":
     optimize_images()
+    write_colours()

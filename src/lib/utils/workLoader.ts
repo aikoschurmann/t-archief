@@ -28,7 +28,8 @@ export type WorkItem = {
   meta?: Record<string, any>;
 };
 
-export const imageAssetsMap: Record<string, { smSrc: string, mdSrc: string, blurSrc: string }> = {};
+// `key` is "folder/photo name", the photo's entry in colours.json
+export const imageAssetsMap: Record<string, { smSrc: string, mdSrc: string, blurSrc: string, key: string }> = {};
 const worksData: Record<string, WorkItem> = {};
 const folderFiles: Record<string, Record<string, string>> = {};
 
@@ -78,7 +79,7 @@ for (const folderPath in variants) {
     const v = variants[folderPath][name];
     const url = v.md ?? v.sm;
     if (!url) continue;
-    imageAssetsMap[url] = { smSrc: v.sm ?? url, mdSrc: v.md ?? url, blurSrc: v.blur ?? '' };
+    imageAssetsMap[url] = { smSrc: v.sm ?? url, mdSrc: v.md ?? url, blurSrc: v.blur ?? '', key: `${worksData[folderPath].folder}/${name}` };
     folderFiles[folderPath][name] = url;
     worksData[folderPath].images.push(url);
     worksData[folderPath].files[url] = name;

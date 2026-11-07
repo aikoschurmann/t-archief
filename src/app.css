@@ -47,11 +47,12 @@
 }
 
 .cell.current {
-  opacity: 0.5;
+  background: var(--fg);
+  color: var(--bg);
 }
 
 @media (hover: hover) {
-  a.cell:hover, button.cell:hover {
+  a.cell:not(.current):hover, button.cell:hover {
     opacity: 0.5;
   }
 }

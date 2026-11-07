@@ -5,6 +5,8 @@
   // sequence: the name cell widens, the links grow upward one by one, then the info panels
   // expand and their text fades in.
   let open = $state(false);
+  // With the menu closed, the button says which section you're in (Info has its own cell)
+  let section = $derived(page === 'index' ? 'Index' : '');
 
   function close() {
     open = false;
@@ -17,18 +19,15 @@
 
 <svelte:window onhashchange={close} onkeydown={e => e.key === 'Escape' && close()} />
 
-<!-- Desktop: mirrors the top bar, "Terug" on the left of project pages -->
+<!-- Desktop: the studio name signs every page, bottom left, and leads to the info page
+     (which has the name at the top already) -->
 {#if page !== 'info'}
   <footer class="bar desktop grid">
-    {#if back}
-      <a href="#/" class="cell back">Terug</a>
-    {/if}
-    <a href="mailto:info@tarchief.studio" class="cell contact">Contacteer mij</a>
-    <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="cell instagram">Instagram</a>
+    <a href="#/info" class="cell brand">Studio 't Archief</a>
   </footer>
 {/if}
 
-<!-- Phones -->
+<!-- Phones: everything else lives in the menu; on desktop the top bar does the navigation -->
 <button class="overlay" class:open onclick={close} aria-label="Sluit menu" tabindex="-1"></button>
 
 <footer class="bar mobile grid" class:open>
@@ -51,12 +50,10 @@
       </div>
     </div>
 
+    <!-- Closed: Home · Info · Menu (contact is in the menu). On project pages "Home" is "Terug". -->
     <div class="bottom-row">
-      {#if back}
-        <a href="#/" class="cell back-mobile">Terug</a>
-      {/if}
-      <div class="name">
-        <a href="#/" class="name-link" onclick={close}>Studio 't Archief</a>
+      <div class="name" class:current={page === 'home' && !open}>
+        <a href="#/" class="name-link" onclick={close}>{back && !open ? '← Terug' : open ? "Studio 't Archief" : 'Home'}</a>
         <div class="grow bio-wrap" inert={!open}>
           <div>
             <p class="bio">
@@ -65,15 +62,17 @@
           </div>
         </div>
       </div>
+      <a href="#/info" class="cell info-mobile" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined}>Info</a>
     </div>
   </div>
 
   <div class="right">
-    <div class="grow link" inert={!open}><div><a href="#/" class="cell" class:current={page === 'home'} onclick={close}>Home</a></div></div>
-    <div class="grow link" inert={!open}><div><a href="#/info" class="cell" class:current={page === 'info'} onclick={close}>Info</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="#/index" class="cell" class:current={page === 'index'} aria-current={page === 'index' ? 'page' : undefined} onclick={close}>Index</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="#/info" class="cell" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined} onclick={close}>Info</a></div></div>
     <div class="grow link" inert={!open}><div><a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="cell">Instagram</a></div></div>
-    <div class="grow link" inert={!open}><div><a href="mailto:info@tarchief.studio" class="cell cta">Contacteer mij</a></div></div>
-    <button class="cell toggle" onclick={toggleMenu} aria-expanded={open}>{open ? 'Sluit' : 'Menu'}</button>
+    <button class="cell toggle" onclick={toggleMenu} aria-expanded={open}>
+      {#if open}Sluit{:else}Menu{#if section}<span class="section">&nbsp;· {section}</span>{/if}{/if}
+    </button>
   </div>
 </footer>
 
@@ -85,11 +84,7 @@
     right: 0;
     z-index: 50;
   }
-  .desktop > * { grid-row: 1; }
-  .back { grid-column: 1 / 3; }
-  .contact { grid-column: 9 / 11; }
-  .instagram { grid-column: 11 / 13; }
-
+  .brand { grid-column: 1 / 3; }
   .mobile, .overlay { display: none; }
 
   @media (max-width: 768px) {
@@ -136,10 +131,10 @@
     .grow > * { overflow: hidden; min-height: 0; }
     .open .grow { grid-template-rows: 1fr; }
 
-    /* 1. The name cell widens from columns 3–4 to the whole left half */
-    .bottom-row { display: flex; gap: 6px; width: 100%; justify-content: flex-end; align-items: flex-end; }
-    .back-mobile { flex: none; width: calc(50% - 3px); }
-    .open .back-mobile { display: none; }
+    /* 1. The name cell widens from columns 1–2 to the whole left half */
+    .bottom-row { display: flex; gap: 6px; width: 100%; align-items: flex-end; }
+    .info-mobile { flex: none; width: calc(50% - 3px); }
+    .open .info-mobile { display: none; }
 
     .name {
       width: calc(50% - 3px);
@@ -149,6 +144,7 @@
       transition: width 250ms var(--ease);
     }
     .open .name { width: 100%; transition-delay: 150ms; }
+    .name.current { background: var(--fg); color: var(--bg); }
     .name-link { display: flex; align-items: center; min-height: var(--bar); padding: 0 6px; }
 
     /* 2. Links grow upward one by one */
@@ -156,10 +152,10 @@
     .open .link { margin-bottom: 6px; transition-duration: 250ms; transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
     .open .link:nth-child(1) { transition-delay: 350ms; }
     .open .link:nth-child(2) { transition-delay: 480ms; }
-    .open .link:nth-child(3) { transition-delay: 580ms; }
-    .open .link:nth-child(4) { transition-delay: 680ms; }
+    .open .link:nth-child(3) { transition-delay: 610ms; }
     .cta { background: var(--fg); color: var(--bg); }
     .toggle { cursor: pointer; }
+    .section { color: var(--mid); }
 
     /* 3. Info panels and the bio expand, 4. then their text fades in */
     .panel-wrap { margin-bottom: 0; }

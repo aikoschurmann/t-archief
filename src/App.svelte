@@ -3,11 +3,12 @@
   import TopBar from './lib/archive/TopBar.svelte';
   import BottomBar from './lib/archive/BottomBar.svelte';
   import InfoView from './lib/archive/InfoView.svelte';
+  import IndexView from './lib/archive/IndexView.svelte';
   import HomeView from './lib/archive/HomeView.svelte';
   import EditView from './lib/archive/EditView.svelte';
   import ProjectView from './lib/archive/ProjectView.svelte';
   import { pad, projectColours } from './lib/archive/media';
-  import { loadWorks, type WorkItem } from './lib/utils/workLoader';
+  import { loadWorks } from './lib/utils/workLoader';
 
   let currentPath = $state(window.location.hash);
   let allWorks = loadWorks();
@@ -17,7 +18,6 @@
 
   let slide = $state(0);
   let homeSlide = $state(0);
-  let homeWork: WorkItem | undefined = $state();
   let colours: Record<string, string> = $state({});
 
   // One dot colour per project, shared by every page
@@ -32,11 +32,17 @@
       : null
   );
 
+  // Coming back home lands on the project you were looking at, not on the first one
+  $effect(() => {
+    if (activeWork) homeSlide = works.indexOf(activeWork);
+  });
+
   let page = $derived(
     import.meta.env.DEV && currentPath === '#/edit' ? 'edit'
       : activeWork ? 'project'
       // Old section links (#about, #contact) land on the info page too
       : ['#/info', '#about', '#contact'].includes(currentPath) ? 'info'
+      : currentPath === '#/index' ? 'index'
       : 'home'
   );
 
@@ -74,6 +80,9 @@
     } else if (page === 'info') {
       title = "Info | Studio 't Archief";
       description = "Studio 't Archief: event-, concert- en cultuurfotografie in Leuven en Brussel. Stuur me een DM of een mail.";
+    } else if (page === 'index') {
+      title = "Index | Studio 't Archief";
+      description = "Alle projecten van Studio 't Archief: event-, concert- en cultuurfotografie.";
     }
     
     document.title = title;
@@ -106,18 +115,12 @@
   {#if page === 'edit'}
     <EditView works={allWorks} />
   {:else}
-  {#if page === 'home'}
-    <TopBar
-      {page}
-      href={homeWork?.href}
-      counter={`${pad(homeSlide + 1)} / ${pad(works.length)}`}
-    />
-  {:else}
-    <TopBar
-      {page}
-      counter={activeWork ? `${pad(slide + 1)} / ${pad(activeWork.images.length)}` : ''}
-    />
-  {/if}
+  <TopBar
+    {page}
+    back={!!activeWork}
+    counter={page === 'home' ? `${pad(homeSlide + 1)} / ${pad(works.length)}`
+      : activeWork ? `${pad(slide + 1)} / ${pad(activeWork.images.length)}` : ''}
+  />
 
   {#if activeWork}
     {#key activeWork.id}
@@ -125,8 +128,10 @@
     {/key}
   {:else if page === 'info'}
     <InfoView {works} />
+  {:else if page === 'index'}
+    <IndexView {works} {colours} />
   {:else}
-    <HomeView {works} {colours} bind:current={homeSlide} bind:work={homeWork} />
+    <HomeView {works} {colours} bind:current={homeSlide} />
   {/if}
 
   <BottomBar {page} back={!!activeWork} />

@@ -1,7 +1,8 @@
 import { imageAssetsMap, type WorkItem } from '../utils/workLoader';
+import measuredColours from '../assets/work/colours.json';
 
 export function assetsFor(url: string) {
-  return imageAssetsMap[url] || { smSrc: url, mdSrc: url, blurSrc: '' };
+  return imageAssetsMap[url] || { smSrc: url, mdSrc: url, blurSrc: '', key: '' };
 }
 
 // Only the optimised variants exist on the site (originals stay local)
@@ -14,63 +15,23 @@ export function displaySrc(url: string) {
   return assetsFor(url).mdSrc;
 }
 
-/**
- * Dominant colour of an image, sampled from its tiny blur variant.
- * Pixels are grouped into hue families and the strongest family wins, so a red
- * jacket on a grey street reads as red instead of averaging into mud.
+/*
+ * Photo colours are measured once by process_images_optimized.py and stored in colours.json,
+ * instead of read from a canvas here: Safari adds noise to canvas pixel reads, so every
+ * browser would show slightly different dots. Photos added since the script last ran have no
+ * entry yet and count as grey until it runs again.
  */
-const colourCache = new Map<string, Promise<string>>();
+type Measured = { ratio: number; dominant: string; buckets: number[][] }; // bucket: [r, g, b, weight]
+const measured = measuredColours as Record<string, Measured>;
 
-export function dominantColour(url: string): Promise<string> {
-  if (!colourCache.has(url)) {
-    colourCache.set(url, new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const size = 24;
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = size;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return resolve('#808080');
-        ctx.drawImage(img, 0, 0, size, size);
-        const d = ctx.getImageData(0, 0, size, size).data;
+const measuredFor = (url: string): Measured | undefined => measured[assetsFor(url).key];
 
-        const BINS = 24;
-        const bins = Array.from({ length: BINS }, () => ({ r: 0, g: 0, b: 0, w: 0 }));
-        let greyR = 0, greyG = 0, greyB = 0, greyN = 0;
-
-        for (let i = 0; i < d.length; i += 4) {
-          const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
-          const { h, s } = hueSat(`rgb(${r}, ${g}, ${b})`);
-          const l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
-          greyR += r; greyG += g; greyB += b; greyN++;
-          if (s < 0.18 || l < 0.06 || l > 0.92) continue;
-          const bin = bins[Math.floor(h / (360 / BINS)) % BINS];
-          bin.r += r * s; bin.g += g * s; bin.b += b * s; bin.w += s;
-        }
-
-        // Weigh each bin together with its neighbours so a hue split across two bins still wins
-        let best = -1, bestW = 0;
-        bins.forEach((_, i) => {
-          const w = bins[i].w + 0.5 * (bins[(i + 1) % BINS].w + bins[(i + BINS - 1) % BINS].w);
-          if (w > bestW) { bestW = w; best = i; }
-        });
-
-        // Colourless photos (black & white) get a neutral grey. The bar is low on purpose:
-        // a red costume on a dark stage is only a small part of the picture but is its colour.
-        if (best < 0 || bestW < greyN * 0.012) {
-          const v = Math.round(Math.min(150, Math.max(90, (greyR + greyG + greyB) / (3 * greyN))));
-          return resolve(`rgb(${v}, ${v}, ${v})`);
-        }
-
-        const bin = bins[best];
-        resolve(normalise(bin.r / bin.w, bin.g / bin.w, bin.b / bin.w));
-      };
-      img.onerror = () => resolve('#444');
-      const a = assetsFor(url);
-      img.src = a.smSrc; // sharper than the blur variant, which smears small colourful areas away
-    }));
-  }
-  return colourCache.get(url)!;
+/**
+ * Dominant colour of an image: its pixels grouped into hue families, the strongest family
+ * wins, so a red jacket on a grey street reads as red instead of averaging into mud.
+ */
+export function dominantColour(url: string) {
+  return measuredFor(url)?.dominant ?? 'rgb(128, 128, 128)';
 }
 
 export function pad(n: number) {
@@ -92,10 +53,12 @@ export function hueSat(rgb: string) {
   return { h: (h * 60 + 360) % 360, s: max ? d / max : 0 };
 }
 
-/** Width / height of an image, read from its small blur variant. */
+/** Width / height of an image: measured with the colours, or read from its small blur variant. */
 const ratioCache = new Map<string, Promise<number>>();
 
 export function aspectRatio(url: string): Promise<number> {
+  const known = measuredFor(url)?.ratio;
+  if (known) return Promise.resolve(known);
   if (!ratioCache.has(url)) {
     ratioCache.set(url, new Promise(resolve => {
       const img = new Image();
@@ -106,27 +69,6 @@ export function aspectRatio(url: string): Promise<number> {
     }));
   }
   return ratioCache.get(url)!;
-}
-
-type Range = { sat: [number, number]; light: [number, number] };
-const CALM: Range = { sat: [0.25, 0.6], light: [0.28, 0.62] };
-const LIVELY: Range = { sat: [0.4, 0.85], light: [0.36, 0.6] };
-
-/** Keep a colour's hue but pull its lightness and saturation into a readable range. */
-function normalise(r: number, g: number, b: number, range: Range = CALM) {
-  const { h, s } = hueSat(`rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`);
-  const l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
-  const clamp = (v: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(lo, v));
-  const light = clamp(l, range.light);
-  const sat = clamp(range === CALM ? s : s * 1.25, range.sat);
-
-  // HSL → RGB, so every colour this module hands out is an rgb() string hueSat can read
-  const a = sat * Math.min(light, 1 - light);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    return Math.round(255 * (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
-  };
-  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
 }
 
 /** Sort key that runs cool → warm (greens, blues, purples, reds, oranges); greys go first. */
@@ -145,11 +87,11 @@ export function toHex(colour: string) {
 }
 
 /**
- * One dot colour per project.
- * - A colour set in the editor (meta.json "colour") always wins.
- * - Otherwise the most common hue across all visible photos is used, so one black & white
- *   cover doesn't turn a colourful project grey.
- * - Fully black & white projects get evenly spread greys, so no two look the same.
+ * One dot colour per project, from its own photos, tuned so the column reads as one run:
+ * - each dot keeps its project's strongest hue, nudged a little (at most HUE_PULL degrees)
+ *   towards its neighbours in the editor's order, so jumps between dots soften;
+ * - lightness runs from light at the top of the column to dark at the bottom;
+ * - a colour set in the editor (meta.json "colour") always wins.
  */
 const projectColourCache = new Map<string, Promise<Record<string, string>>>();
 
@@ -159,64 +101,56 @@ export function projectColours(works: WorkItem[]): Promise<Record<string, string
   return projectColourCache.get(key)!;
 }
 
+/**
+ * The strongest hue family among a set of photo colours. Photos within 20° of hue form a
+ * family, and a family weighs by how vivid its colours are rather than how many photos it
+ * has: one red costume photo outweighs a few faintly orange skin tones or a dim blue stage.
+ * The hue is averaged as an angle, so a set of reds stays red instead of turning brown.
+ */
+function strongestHue(colours: string[]) {
+  const colourful = colours.map(toOklch).filter(c => c.C >= 0.02);
+  if (!colourful.length) return null;
+  const rad = Math.PI / 180;
+  const family = (seed: { h: number }) => colourful.filter(o => hueGap(o.h, seed.h) <= 20);
+  const strength = (group: { C: number }[]) => group.reduce((sum, o) => sum + o.C * o.C, 0);
+  const group = colourful.map(family).sort((a, b) => strength(b) - strength(a))[0];
+  const x = group.reduce((sum, o) => sum + o.C * Math.cos(o.h * rad), 0);
+  const y = group.reduce((sum, o) => sum + o.C * Math.sin(o.h * rad), 0);
+  return {
+    h: (Math.atan2(y, x) / rad + 360) % 360,
+    C: Math.sqrt(strength(group) / group.length),
+    L: group.reduce((sum, o) => sum + o.L, 0) / group.length
+  };
+}
+
 async function computeProjectColours(works: WorkItem[]) {
   const result: Record<string, string> = {};
-  const greys: { id: string; light: number }[] = [];
+  const found = works.map(w => strongestHue(w.images.slice(0, 16).map(dominantColour)));
+  const own = found.map(f => (f ? settleHue(f.h, f.L) : null));
 
-  await Promise.all(works.map(async w => {
+  // Soften the jumps: every hue moves towards the average of its neighbours, but never
+  // further than HUE_PULL from its own, so a red project stays red
+  const signed = (from: number, to: number) => ((to - from + 540) % 360) - 180;
+  let hues = own;
+  for (let round = 0; round < 30; round++) {
+    hues = own.map((h, i) => {
+      if (h === null) return null;
+      const near = [hues[i - 1], hues[i + 1]].filter((n): n is number => n != null);
+      if (!near.length) return h;
+      const pull = near.reduce((sum, n) => sum + signed(h, n), 0) / near.length / 2;
+      return (h + clamp(pull, -HUE_PULL, HUE_PULL) + 360) % 360;
+    });
+  }
+
+  works.forEach((w, i) => {
     const manual = w.meta?.colour;
     if (typeof manual === 'string' && HEX.test(manual)) return (result[w.id] = manual);
-
-    const colours = await Promise.all(w.images.slice(0, 16).map(dominantColour));
-    const colourful = colours.map(c => ({ c, ...hueSat(c) })).filter(c => c.s >= 0.12);
-
-    if (!colourful.length) {
-      const light = colours.reduce((sum, c) => sum + Number(c.match(/\d+/)?.[0] ?? 128), 0) / (colours.length || 1);
-      greys.push({ id: w.id, light });
-      return;
-    }
-
-    // Pick the hue shared by the most photos (ties go to the more saturated one), then average that group
-    const near = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b)) <= 30;
-    const best = colourful
-      .map(c => ({ c, votes: colourful.filter(o => near(o.h, c.h)).length + c.s * 0.1 }))
-      .sort((a, b) => b.votes - a.votes)[0].c;
-    const group = colourful.filter(o => near(o.h, best.h)).map(o => (o.c.match(/\d+/g) ?? []).map(Number));
-    const avg = [0, 1, 2].map(i => Math.round(group.reduce((sum, rgb) => sum + rgb[i], 0) / group.length));
-    result[w.id] = `rgb(${avg[0]}, ${avg[1]}, ${avg[2]})`;
-  }));
-
-  // Spread black & white projects over a grey ladder, darkest photos get the darkest grey
-  greys.sort((a, b) => a.light - b.light);
-  greys.forEach((g, i) => {
-    const v = greys.length === 1 ? 128 : Math.round(60 + (i * 120) / (greys.length - 1));
-    result[g.id] = `rgb(${v}, ${v}, ${v})`;
+    const L = DOT.L[0] + (DOT.L[1] - DOT.L[0]) * (works.length > 1 ? i / (works.length - 1) : 0.5);
+    const h = hues[i];
+    result[w.id] = h === null ? fromOklch(L, 0, 0) : dot(h, L);
   });
 
   return result;
-}
-
-/** RGB pixels of an image's small (800px) variant, scaled down to `size` × `size`. */
-const pixelCache = new Map<string, Promise<Uint8ClampedArray | null>>();
-
-function pixels(url: string, size = 48): Promise<Uint8ClampedArray | null> {
-  if (!pixelCache.has(url)) {
-    pixelCache.set(url, new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = size;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return resolve(null);
-        ctx.drawImage(img, 0, 0, size, size);
-        resolve(ctx.getImageData(0, 0, size, size).data);
-      };
-      img.onerror = () => resolve(null);
-      // The blur variant smears neighbouring colours together; the small variant keeps them apart
-      img.src = assetsFor(url).smSrc;
-    }));
-  }
-  return pixelCache.get(url)!;
 }
 
 // Perceptual-ish RGB distance ("redmean"), cheap and good enough to tell colours apart
@@ -227,81 +161,56 @@ function distance(a: number[], b: number[]) {
 }
 
 /**
- * A palette of distinct colours across a set of photos: pixels are pooled into colour
- * buckets, then the biggest buckets are picked as long as they differ enough from the
+ * A palette of distinct colours across a set of photos: their measured colour buckets are
+ * pooled, then the biggest buckets are picked as long as they differ enough from the
  * ones already chosen. Colourful pixels weigh much more than neutral ones, and at most
  * one neutral (black, grey, white) makes it in, so large dark or grey areas can't crowd
  * out the actual colours. Fully black & white sets get a range of greys.
  */
-const paletteCache = new Map<string, Promise<string[]>>();
-
 type Bucket = { rgb: number[]; w: number; neutral: boolean };
 
-export function palette(urls: string[], count = 5): Promise<string[]> {
-  const key = `${count}:${urls.join(',')}`;
-  if (!paletteCache.has(key)) {
-    paletteCache.set(key, Promise.all(urls.slice(0, 16).map(u => pixels(u))).then(all => {
-      const sums = new Map<number, { r: number; g: number; b: number; w: number }>();
-      for (const d of all) {
-        if (!d) continue;
-        for (let i = 0; i < d.length; i += 4) {
-          const [r, g, b] = [d[i], d[i + 1], d[i + 2]];
-          const max = Math.max(r, g, b);
-          const min = Math.min(r, g, b);
-          const sat = max ? (max - min) / max : 0;
-          const light = (max + min) / 510;
-          // Very dark and very light pixels carry little colour information
-          const w = (0.2 + 4 * sat * sat) * (light < 0.08 || light > 0.95 ? 0.3 : 1);
-          const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
-          const sum = sums.get(key) ?? { r: 0, g: 0, b: 0, w: 0 };
-          sum.r += r * w; sum.g += g * w; sum.b += b * w; sum.w += w;
-          sums.set(key, sum);
-        }
-      }
-
-      const ranked: Bucket[] = [...sums.values()]
-        .map(s => {
-          const rgb = [s.r / s.w, s.g / s.w, s.b / s.w];
-          const max = Math.max(...rgb);
-          const min = Math.min(...rgb);
-          const light = (max + min) / 510;
-          const neutral = (max ? (max - min) / max : 0) < 0.18 || light < 0.1 || light > 0.92;
-          return { rgb, w: s.w, neutral };
-        })
-        .sort((a, b) => b.w - a.w);
-
-      const colourful = ranked.filter(b => !b.neutral);
-      const maxNeutrals = colourful.length ? 1 : count;
-
-      // Greedy pick; relax the "different enough" threshold if the photos are very uniform
-      for (const minDistance of [120, 90, 65, 40, 0]) {
-        const picked: Bucket[] = [];
-        let neutrals = 0;
-        for (const c of ranked) {
-          if (c.neutral && neutrals >= maxNeutrals) continue;
-          if (!picked.every(p => distance(p.rgb, c.rgb) >= minDistance)) continue;
-          picked.push(c);
-          if (c.neutral) neutrals++;
-          if (picked.length === count) break;
-        }
-        if (picked.length === count || minDistance === 0) {
-          return picked.map(({ rgb: [r, g, b] }) => `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`);
-        }
-      }
-      return [];
-    }));
+export function palette(urls: string[], count = 5): string[] {
+  // Buckets from different photos that fall in the same colour cell merge
+  const sums = new Map<number, { r: number; g: number; b: number; w: number }>();
+  for (const url of urls.slice(0, 16)) {
+    for (const [r, g, b, w] of measuredFor(url)?.buckets ?? []) {
+      const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
+      const sum = sums.get(key) ?? { r: 0, g: 0, b: 0, w: 0 };
+      sum.r += r * w; sum.g += g * w; sum.b += b * w; sum.w += w;
+      sums.set(key, sum);
+    }
   }
-  return paletteCache.get(key)!;
-}
 
-/** HSL (h in degrees, s and l 0–1) → rgb() string. */
-function fromHsl(h: number, sat: number, light: number) {
-  const a = sat * Math.min(light, 1 - light);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    return Math.round(255 * (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
-  };
-  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
+  const ranked: Bucket[] = [...sums.values()]
+    .map(s => {
+      const rgb = [s.r / s.w, s.g / s.w, s.b / s.w];
+      const max = Math.max(...rgb);
+      const min = Math.min(...rgb);
+      const light = (max + min) / 510;
+      const neutral = (max ? (max - min) / max : 0) < 0.18 || light < 0.1 || light > 0.92;
+      return { rgb, w: s.w, neutral };
+    })
+    .sort((a, b) => b.w - a.w);
+
+  const colourful = ranked.filter(b => !b.neutral);
+  const maxNeutrals = colourful.length ? 1 : count;
+
+  // Greedy pick; relax the "different enough" threshold if the photos are very uniform
+  for (const minDistance of [120, 90, 65, 40, 0]) {
+    const picked: Bucket[] = [];
+    let neutrals = 0;
+    for (const c of ranked) {
+      if (c.neutral && neutrals >= maxNeutrals) continue;
+      if (!picked.every(p => distance(p.rgb, c.rgb) >= minDistance)) continue;
+      picked.push(c);
+      if (c.neutral) neutrals++;
+      if (picked.length === count) break;
+    }
+    if (picked.length === count || minDistance === 0) {
+      return picked.map(({ rgb: [r, g, b] }) => `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`);
+    }
+  }
+  return [];
 }
 
 const hueGap = (a: number, b: number) => {
@@ -317,41 +226,105 @@ const hueGap = (a: number, b: number) => {
  * Black & white photos get greys of different lightness.
  */
 export async function photoDotColours(urls: string[]): Promise<string[]> {
-  const palettes = await Promise.all(urls.map(u => palette([u], 8)));
-  const rgbOf = (c: string) => (c.match(/\d+/g) ?? ['128', '128', '128']).map(Number);
-  const SHADES = [0.48, 0.66, 0.32, 0.58, 0.4];
-  const GREYS = [130, 95, 165, 75, 150];
-  const chosen: { h: number; light: number }[] = [];
+  const palettes = urls.map(u => palette([u], 8));
+  const SHADES = [0, 0.08, -0.08, 0.04, -0.04];
+  const GREYS = [0.5, 0.2, 0.8, 0.35, 0.65];
+  const chosen: number[] = [];
   let greys = 0;
 
   return palettes.map(pal => {
-    const candidates = pal
+    const candidates = pal.map(toOklch).filter(c => c.C >= 0.04 && c.L > 0.2 && c.L < 0.95);
+
+    if (!candidates.length) return grey(GREYS[greys++ % GREYS.length]);
+
+    const best = candidates
       .map(c => {
-        const rgb = rgbOf(c);
-        const { h, s } = hueSat(c);
-        const light = (Math.max(...rgb) + Math.min(...rgb)) / 510;
-        return { h, s, light };
+        const h = settleHue(c.h, c.L);
+        const novelty = chosen.length ? Math.min(1, Math.min(...chosen.map(o => hueGap(o, h))) / 70) : 1;
+        return { h, score: novelty + 0.5 * Math.min(1, c.C / 0.15) };
       })
-      .filter(c => c.s >= 0.15 && c.light > 0.08 && c.light < 0.92);
-
-    if (!candidates.length) {
-      const v = GREYS[greys++ % GREYS.length];
-      return `rgb(${v}, ${v}, ${v})`;
-    }
-
-    const scored = candidates.map(c => {
-      const vivid = c.s * (1 - Math.min(1, Math.abs(c.light - 0.5) * 1.6));
-      const novelty = chosen.length ? Math.min(1, Math.min(...chosen.map(o => hueGap(o.h, c.h))) / 70) : 1;
-      return { ...c, score: novelty + 0.5 * vivid };
-    });
-    const best = scored.sort((a, b) => b.score - a.score)[0];
+      .sort((a, b) => b.score - a.score)[0];
 
     // Same hue family as earlier dots: step through lighter and darker shades
-    const repeats = chosen.filter(o => hueGap(o.h, best.h) < 22).length;
-    const light = repeats ? SHADES[repeats % SHADES.length] : Math.min(0.6, Math.max(0.38, best.light));
-    const sat = Math.min(0.85, Math.max(0.45, best.s * 1.25));
-
-    chosen.push({ h: best.h, light });
-    return fromHsl(best.h, sat, light);
+    const repeats = chosen.filter(o => hueGap(o, best.h) < 22).length;
+    chosen.push(best.h);
+    return dot(best.h, 0.58 + SHADES[repeats % SHADES.length]);
   });
+}
+
+/*
+ * Every colour the site hands out goes through OKLCH, where equal lightness also looks equal
+ * (in HSL a yellow and a blue of the same "lightness" are worlds apart). Dots share one
+ * strong chroma; the project column runs from DOT.L[0] at the top to DOT.L[1] at the bottom.
+ */
+const DOT = { C: 0.19, L: [0.6, 0.46] as const };
+const HUE_PULL = 15;
+const GREY_L = [0.5, 0.8] as const;
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** OKLCH lightness (0–1), chroma (0–~0.37) and hue (degrees) of an `rgb(r, g, b)` string. */
+export function toOklch(rgb: string) {
+  const [r, g, b] = (rgb.match(/\d+/g) ?? ['0', '0', '0']).map(n => {
+    const c = Number(n) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+  const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
+  const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+  return { L, C: Math.hypot(A, B), h: (Math.atan2(B, A) * 180 / Math.PI + 360) % 360 };
+}
+
+/** OKLCH → rgb() string; chroma is lowered until the colour fits in sRGB. */
+function fromOklch(L: number, C: number, h: number) {
+  const rad = h * Math.PI / 180;
+  for (let c = C; ; c = Math.max(0, c - 0.005)) {
+    const A = c * Math.cos(rad);
+    const B = c * Math.sin(rad);
+    const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+    const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+    const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+    const lin = [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
+    ];
+    if (c > 0 && lin.some(v => v < -0.001 || v > 1.001)) continue;
+    const [R, G, Bl] = lin.map(v => {
+      const x = clamp(v, 0, 1);
+      return Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055));
+    });
+    return `rgb(${R}, ${G}, ${Bl})`;
+  }
+}
+
+/** A dot colour: hue `h` at lightness `L` and the shared chroma. */
+function dot(h: number, L: number) {
+  // Real yellows only read as yellow when lighter; at dot lightness they turn olive
+  return fromOklch(L + 0.15 * Math.max(0, 1 - hueGap(h, 95) / 25), DOT.C, h);
+}
+
+/**
+ * A photo hue as people would name it. Shaded foliage measures as a dark yellow-green but
+ * reads as green, while real yellows are light; so dark hues from yellow to green move to
+ * green. `sourceL` is how light the colour was in the photo.
+ */
+function settleHue(h: number, sourceL: number) {
+  if (sourceL < 0.65 && h > 85 && h < 160) h += (148 - h) * 0.85 * Math.min(1, (h - 85) / 15);
+  return h;
+}
+
+/** A grey from the one ladder all black & white work shares, `t` 0 (dark) to 1 (light). */
+function grey(t: number) {
+  return fromOklch(GREY_L[0] + t * (GREY_L[1] - GREY_L[0]), 0, 0);
+}
+
+/** A swatch: keeps the photo's own hue and lightness, but within the site's palette. */
+export function swatch(colour: string) {
+  const { L, C, h } = toOklch(colour);
+  const light = clamp(L, 0.4, 0.75);
+  return C < 0.03 ? fromOklch(light, 0, 0) : fromOklch(light, clamp(C, 0.08, 0.17), h);
 }
