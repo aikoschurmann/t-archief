@@ -294,37 +294,64 @@ export function palette(urls: string[], count = 5): Promise<string[]> {
   return paletteCache.get(key)!;
 }
 
+/** HSL (h in degrees, s and l 0–1) → rgb() string. */
+function fromHsl(h: number, sat: number, light: number) {
+  const a = sat * Math.min(light, 1 - light);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return Math.round(255 * (light - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
+}
+
+const hueGap = (a: number, b: number) => {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+};
+
 /**
- * One dot colour per photo of a project. Each photo offers its palette; the most vivid
- * colour wins, with a bonus for differing from the previous photo's dot, so a series of
- * warm stage shots doesn't turn into brown after brown. Black & white photos stay grey.
+ * One dot colour per photo of a project, chosen for the project as a whole: each photo
+ * offers its palette, and a colour scores mostly on how far its hue is from every dot
+ * already chosen, plus a bit for being vivid. When a hue still repeats (a series that
+ * really is all red) the repeat gets a lighter or darker shade so neighbours stay apart.
+ * Black & white photos get greys of different lightness.
  */
 export async function photoDotColours(urls: string[]): Promise<string[]> {
-  const palettes = await Promise.all(urls.map(u => palette([u], 5)));
+  const palettes = await Promise.all(urls.map(u => palette([u], 8)));
   const rgbOf = (c: string) => (c.match(/\d+/g) ?? ['128', '128', '128']).map(Number);
-  let previous: number[] | null = null;
+  const SHADES = [0.48, 0.66, 0.32, 0.58, 0.4];
+  const GREYS = [130, 95, 165, 75, 150];
+  const chosen: { h: number; light: number }[] = [];
+  let greys = 0;
 
   return palettes.map(pal => {
-    const candidates = pal.map(c => {
-      const rgb = rgbOf(c);
-      const { s } = hueSat(c);
-      const light = (Math.max(...rgb) + Math.min(...rgb)) / 510;
-      // Vivid = saturated and neither very dark nor very light
-      const vivid = s * (1 - Math.min(1, Math.abs(light - 0.5) * 1.6));
-      const different = previous ? Math.min(1, distance(previous, rgb) / 250) : 0;
-      return { rgb, s, score: vivid + 0.35 * different };
-    });
+    const candidates = pal
+      .map(c => {
+        const rgb = rgbOf(c);
+        const { h, s } = hueSat(c);
+        const light = (Math.max(...rgb) + Math.min(...rgb)) / 510;
+        return { h, s, light };
+      })
+      .filter(c => c.s >= 0.15 && c.light > 0.08 && c.light < 0.92);
 
-    const colourful = candidates.filter(c => c.s >= 0.18);
-    if (!colourful.length) {
-      const grey = candidates[0]?.rgb ?? [128, 128, 128];
-      const v = Math.round(Math.min(160, Math.max(80, (grey[0] + grey[1] + grey[2]) / 3)));
-      previous = [v, v, v];
+    if (!candidates.length) {
+      const v = GREYS[greys++ % GREYS.length];
       return `rgb(${v}, ${v}, ${v})`;
     }
 
-    const best = colourful.sort((a, b) => b.score - a.score)[0];
-    previous = best.rgb;
-    return normalise(best.rgb[0], best.rgb[1], best.rgb[2], LIVELY);
+    const scored = candidates.map(c => {
+      const vivid = c.s * (1 - Math.min(1, Math.abs(c.light - 0.5) * 1.6));
+      const novelty = chosen.length ? Math.min(1, Math.min(...chosen.map(o => hueGap(o.h, c.h))) / 70) : 1;
+      return { ...c, score: novelty + 0.5 * vivid };
+    });
+    const best = scored.sort((a, b) => b.score - a.score)[0];
+
+    // Same hue family as earlier dots: step through lighter and darker shades
+    const repeats = chosen.filter(o => hueGap(o.h, best.h) < 22).length;
+    const light = repeats ? SHADES[repeats % SHADES.length] : Math.min(0.6, Math.max(0.38, best.light));
+    const sat = Math.min(0.85, Math.max(0.45, best.s * 1.25));
+
+    chosen.push({ h: best.h, light });
+    return fromHsl(best.h, sat, light);
   });
 }
