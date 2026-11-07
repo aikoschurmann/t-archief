@@ -159,7 +159,9 @@
       <span class="cell title">{item.title}</span>
     </span>
     <span class="cell counter">{pad(current + 1)} / {pad(item.images.length)}</span>
-    <span class="cell cat">{item.meta?.category ?? (item.type === 'set' ? 'Serie' : 'Beeld')}</span>
+    {#if item.meta?.category}
+      <span class="cell cat">{item.meta.category}</span>
+    {/if}
     {#if item.meta?.year ?? item.meta?.date ?? item.description}
       <span class="cell year">{item.meta?.year ?? item.meta?.date ?? item.description}</span>
     {/if}
