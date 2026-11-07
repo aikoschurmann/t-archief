@@ -154,19 +154,6 @@
       <span class="label" class:show={hoveredKey === key && key !== step}>{w.title}</span>
     </button>
   {/each}
-  <!-- Desktop: under the last dot, says there are more projects below, until the last one -->
-  {#if !mobile}
-    <span
-      class="more"
-      class:hidden={step >= ordered.length - 1}
-      style:transform="translateY({(ordered.length - step) * row + firstRow}px)"
-      aria-hidden="true"
-    >
-      <svg class="arrow" width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M5 0v12M1 8l4 4 4-4" />
-      </svg>
-    </span>
-  {/if}
 </div>
 
 {#if work}
@@ -236,29 +223,6 @@
     transition: border-radius var(--speed) var(--ease);
   }
   .row:hover .dot, .row.active .dot { border-radius: 0; }
-
-  .more {
-    position: absolute;
-    top: 0;
-    left: var(--gap);
-    width: var(--bar);
-    height: var(--bar);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--mid);
-    transition: transform 700ms cubic-bezier(0.33, 1, 0.68, 1), opacity var(--slow) var(--ease);
-  }
-  .more.hidden { opacity: 0; }
-  .arrow { animation: bob 1.6s var(--ease) infinite; }
-
-  @keyframes bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(4px); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .arrow { animation: none; }
-  }
 
   .label {
     position: absolute;
