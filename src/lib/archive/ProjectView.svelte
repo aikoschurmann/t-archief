@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { WorkItem } from '../utils/workLoader';
-  import { palette, displaySrc, srcsetFor, pad, dominantColour } from './media';
+  import { palette, displaySrc, srcsetFor, pad, photoDotColours } from './media';
   import Strip from './Strip.svelte';
 
   let { item, colour = 'var(--cell)', onIndex }: { item: WorkItem; colour?: string; onIndex: (i: number) => void } = $props();
@@ -30,7 +30,9 @@
   const ROW = 32;
 
   $effect(() => {
-    for (const img of item.images) dominantColour(img).then(c => (photoColours[img] = c));
+    photoDotColours(item.images).then(list => {
+      photoColours = Object.fromEntries(item.images.map((img, i) => [img, list[i]]));
+    });
   });
 
   $effect(() => {

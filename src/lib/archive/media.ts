@@ -108,12 +108,17 @@ export function aspectRatio(url: string): Promise<number> {
   return ratioCache.get(url)!;
 }
 
-/** Keep a colour's hue but pull its lightness and saturation into a calm, readable range. */
-function normalise(r: number, g: number, b: number) {
+type Range = { sat: [number, number]; light: [number, number] };
+const CALM: Range = { sat: [0.25, 0.6], light: [0.28, 0.62] };
+const LIVELY: Range = { sat: [0.4, 0.85], light: [0.36, 0.6] };
+
+/** Keep a colour's hue but pull its lightness and saturation into a readable range. */
+function normalise(r: number, g: number, b: number, range: Range = CALM) {
   const { h, s } = hueSat(`rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`);
   const l = (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
-  const light = Math.min(0.62, Math.max(0.28, l));
-  const sat = Math.min(0.6, Math.max(0.25, s));
+  const clamp = (v: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(lo, v));
+  const light = clamp(l, range.light);
+  const sat = clamp(range === CALM ? s : s * 1.25, range.sat);
 
   // HSL → RGB, so every colour this module hands out is an rgb() string hueSat can read
   const a = sat * Math.min(light, 1 - light);
@@ -287,4 +292,39 @@ export function palette(urls: string[], count = 5): Promise<string[]> {
     }));
   }
   return paletteCache.get(key)!;
+}
+
+/**
+ * One dot colour per photo of a project. Each photo offers its palette; the most vivid
+ * colour wins, with a bonus for differing from the previous photo's dot, so a series of
+ * warm stage shots doesn't turn into brown after brown. Black & white photos stay grey.
+ */
+export async function photoDotColours(urls: string[]): Promise<string[]> {
+  const palettes = await Promise.all(urls.map(u => palette([u], 5)));
+  const rgbOf = (c: string) => (c.match(/\d+/g) ?? ['128', '128', '128']).map(Number);
+  let previous: number[] | null = null;
+
+  return palettes.map(pal => {
+    const candidates = pal.map(c => {
+      const rgb = rgbOf(c);
+      const { s } = hueSat(c);
+      const light = (Math.max(...rgb) + Math.min(...rgb)) / 510;
+      // Vivid = saturated and neither very dark nor very light
+      const vivid = s * (1 - Math.min(1, Math.abs(light - 0.5) * 1.6));
+      const different = previous ? Math.min(1, distance(previous, rgb) / 250) : 0;
+      return { rgb, s, score: vivid + 0.35 * different };
+    });
+
+    const colourful = candidates.filter(c => c.s >= 0.18);
+    if (!colourful.length) {
+      const grey = candidates[0]?.rgb ?? [128, 128, 128];
+      const v = Math.round(Math.min(160, Math.max(80, (grey[0] + grey[1] + grey[2]) / 3)));
+      previous = [v, v, v];
+      return `rgb(${v}, ${v}, ${v})`;
+    }
+
+    const best = colourful.sort((a, b) => b.score - a.score)[0];
+    previous = best.rgb;
+    return normalise(best.rgb[0], best.rgb[1], best.rgb[2], LIVELY);
+  });
 }
