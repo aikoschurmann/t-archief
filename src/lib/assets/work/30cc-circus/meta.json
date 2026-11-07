@@ -1,22 +1,22 @@
 {
   "order": 1,
   "image_order": [
-    "30cc-rode-hond-01.PNG",
-    "30cc-rode-hond-05.jpg",
-    "30cc-rode-hond-03.jpg",
-    "30cc-rode-hond-04.PNG",
-    "30cc-rode-hond-06_SnapseedCopy.jpg",
-    "30cc-rode-hond-10.jpg",
-    "30cc-rode-hond-11.PNG",
-    "30cc-rode-hond-16_SnapseedCopy.jpg"
+    "30cc-rode-hond-01",
+    "30cc-rode-hond-05",
+    "30cc-rode-hond-03",
+    "30cc-rode-hond-04",
+    "30cc-rode-hond-06_SnapseedCopy",
+    "30cc-rode-hond-10",
+    "30cc-rode-hond-11",
+    "30cc-rode-hond-16_SnapseedCopy"
   ],
   "home": [
-    "30cc-rode-hond-05.jpg",
-    "30cc-rode-hond-01.PNG",
-    "30cc-rode-hond-06_SnapseedCopy.jpg"
+    "30cc-rode-hond-05",
+    "30cc-rode-hond-01",
+    "30cc-rode-hond-06_SnapseedCopy"
   ],
   "hidden": [
-    "30cc-rode-hond-03.jpg",
-    "30cc-rode-hond-04.PNG"
+    "30cc-rode-hond-03",
+    "30cc-rode-hond-04"
   ]
 }

@@ -1,18 +1,18 @@
 {
   "order": 8,
   "image_order": [
-    "IMG_1101.PNG",
-    "IMG_1110.jpg",
-    "IMG_1100.PNG",
-    "IMG_1104.PNG",
-    "24u-20.jpg"
+    "IMG_1101",
+    "IMG_1110",
+    "IMG_1100",
+    "IMG_1104",
+    "24u-20"
   ],
   "home": [
-    "IMG_1100.PNG",
-    "24u-20.jpg",
-    "IMG_1104.PNG"
+    "IMG_1100",
+    "24u-20",
+    "IMG_1104"
   ],
   "hidden": [
-    "IMG_1101.PNG"
+    "IMG_1101"
   ]
 }

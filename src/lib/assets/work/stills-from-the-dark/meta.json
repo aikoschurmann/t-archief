@@ -3,13 +3,13 @@
   "order": 7,
   "cover": "DSC00279.jpg",
   "image_order": [
-    "DSC00274.jpg",
-    "DSC00279.jpg",
-    "DSC00287.jpg"
+    "DSC00274",
+    "DSC00279",
+    "DSC00287"
   ],
   "home": [
-    "DSC00274.jpg",
-    "DSC00279.jpg"
+    "DSC00274",
+    "DSC00279"
   ],
   "visible": false
 }

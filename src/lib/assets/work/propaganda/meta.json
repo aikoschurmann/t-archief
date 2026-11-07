@@ -1,15 +1,15 @@
 {
   "order": 2,
   "image_order": [
-    "propaganda-12.jpg",
-    "propaganda-13.jpg",
-    "propaganda-14.jpg",
-    "propaganda-15.jpg",
-    "propaganda-09.jpg"
+    "propaganda-12",
+    "propaganda-13",
+    "propaganda-14",
+    "propaganda-15",
+    "propaganda-09"
   ],
   "home": [
-    "propaganda-12.jpg",
-    "propaganda-14.jpg",
-    "propaganda-15.jpg"
+    "propaganda-12",
+    "propaganda-14",
+    "propaganda-15"
   ]
 }
