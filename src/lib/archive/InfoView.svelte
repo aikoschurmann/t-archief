@@ -62,7 +62,7 @@
       <dt class="cell">Contact</dt>
       <dd>
         <a href="mailto:info@tarchief.studio">info@tarchief.studio</a><br />
-        <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener">Instagram @tarchief.studio ↗</a>
+        <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener">Instagram @tarchief.studio ↗&#xFE0E;</a>
       </dd>
     </div>
 
@@ -93,7 +93,7 @@
 
   <div class="cta">
     <a href="mailto:info@tarchief.studio?subject=Fotografie" class="book">Mail mij →</a>
-    <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="book alt">Stuur een DM ↗</a>
+    <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="book alt">Stuur een DM ↗&#xFE0E;</a>
   </div>
 </div>
 
@@ -213,8 +213,9 @@
     .name { width: calc((100% - 6px * 5) / 6 * 2 + 6px); }
     .photo { position: static; order: 1; }
     .frame { aspect-ratio: 4 / 3; }
+    /* Text under its label, so it gets the full width */
     dt { grid-column: 1 / 3; }
-    dd { grid-column: 3 / 7; }
+    dd { grid-column: 1 / 7; margin-top: 6px; max-width: none; }
     .cta { flex-direction: column; gap: 6px; }
   }
 </style>

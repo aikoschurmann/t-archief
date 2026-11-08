@@ -36,9 +36,10 @@
     <div class="grow panel-wrap" inert={!open}>
       <div class="panel">
         <span class="head">Contact</span>
-        <a href="mailto:info@tarchief.studio">info@tarchief.studio</a>
-        <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener">@tarchief.studio</a>
-        <span>Leuven / Brussel</span>
+        <!-- ↗ plus U+FE0E: without it iPhones draw the arrow as an emoji -->
+        <a href="mailto:info@tarchief.studio" class="line">info@tarchief.studio →</a>
+        <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="line">Instagram @tarchief.studio ↗&#xFE0E;</a>
+        <span class="line muted">Leuven / Brussel</span>
       </div>
     </div>
     <div class="grow panel-wrap" inert={!open}>
@@ -69,7 +70,7 @@
   <div class="right">
     <div class="grow link" inert={!open}><div><a href="#/index" class="cell" class:current={page === 'index'} aria-current={page === 'index' ? 'page' : undefined} onclick={close}>Index</a></div></div>
     <div class="grow link" inert={!open}><div><a href="#/info" class="cell" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined} onclick={close}>Info</a></div></div>
-    <div class="grow link" inert={!open}><div><a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="cell">Instagram</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="mailto:info@tarchief.studio" class="cell cta">Mail mij →</a></div></div>
     <button class="cell toggle" onclick={toggleMenu} aria-expanded={open}>
       {#if open}Sluit{:else}Menu{#if section}<span class="section">&nbsp;· {section}</span>{/if}{/if}
     </button>
@@ -96,7 +97,7 @@
       position: fixed;
       inset: 0;
       z-index: 70;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.92);
       opacity: 0;
       pointer-events: none;
       transition: opacity 300ms var(--ease);
@@ -111,6 +112,17 @@
       pointer-events: none;
     }
     .mobile > * { pointer-events: auto; }
+    /* A white strip behind the bar, so the page doesn't show between and under the cells */
+    .mobile::before {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: calc(var(--bar) + var(--gap) * 2);
+      background: var(--bg);
+      z-index: -1;
+    }
 
     .left, .right {
       display: flex;
@@ -171,6 +183,8 @@
       line-height: 1.3;
     }
     .head { margin-bottom: 1em; }
+    .line { padding: 3px 0; }
+    .muted { color: var(--mid); }
     .bio { padding: 0 6px 6px; line-height: 1.3; }
     .panel, .bio { opacity: 0; transition: opacity 150ms var(--ease); }
     .open .panel, .open .bio { opacity: 1; transition: opacity 350ms var(--ease) 660ms; }
