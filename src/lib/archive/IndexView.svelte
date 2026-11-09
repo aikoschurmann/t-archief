@@ -87,11 +87,11 @@
     width: var(--bar);
     height: var(--bar);
     border-radius: 50%;
-    background: var(--dot);
-    transition: border-radius var(--speed) var(--ease), background var(--speed) var(--ease);
+    background: var(--colour, var(--dot));
+    transition: border-radius var(--speed) var(--ease);
   }
-  /* Grey until you point at a project, then its colour */
-  .row:hover .dot, .row:focus-visible .dot { border-radius: 0; background: var(--colour, var(--fg)); }
+  /* The index is a key to the colours, so every dot shows its own */
+  .row:hover .dot, .row:focus-visible .dot { border-radius: 0; }
   .title { flex: 1; min-width: 0; }
   .num { color: var(--mid); margin-right: 12px; font-variant-numeric: tabular-nums; }
   .cat { grid-column: 5 / 7; }
