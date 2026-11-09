@@ -27,7 +27,7 @@
           onfocus={() => (hovered = w)}
         >
           <span class="name">
-            <span class="dot" style:background={colours[w.id] ?? 'var(--cell)'}></span>
+            <span class="dot" style:--colour={colours[w.id]}></span>
             <span class="cell title"><span class="num">{pad(i + 1)}</span>{w.title}</span>
           </span>
           <span class="cell cat">{w.meta?.category ?? ''}</span>
@@ -87,9 +87,11 @@
     width: var(--bar);
     height: var(--bar);
     border-radius: 50%;
-    transition: border-radius var(--speed) var(--ease);
+    background: var(--dot);
+    transition: border-radius var(--speed) var(--ease), background var(--speed) var(--ease);
   }
-  .row:hover .dot, .row:focus-visible .dot { border-radius: 0; }
+  /* Grey until you point at a project, then its colour */
+  .row:hover .dot, .row:focus-visible .dot { border-radius: 0; background: var(--colour, var(--fg)); }
   .title { flex: 1; min-width: 0; }
   .num { color: var(--mid); margin-right: 12px; font-variant-numeric: tabular-nums; }
   .cat { grid-column: 5 / 7; }

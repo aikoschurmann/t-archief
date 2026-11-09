@@ -21,7 +21,7 @@
 
   $effect(() => onIndex(current));
 
-  // Phones: one photo at a time in a vertical strip, with a dot per photo in its own colour
+  // Phones: one photo at a time in a vertical strip, with a dot per photo (in its colour once you're on it)
   let viewW = $state(1200);
   let viewH = $state(800);
   let mobile = $derived(viewW <= 768);
@@ -142,7 +142,7 @@
         class="m-dot"
         class:active={k === mStep}
         class:faded={k - mStep > 2}
-        style:background={photoColours[item.images[k]] ?? colour}
+        style:--colour={photoColours[item.images[k]] ?? colour}
         style:transform="translateY({(k - mStep) * ROW + 12}px)"
       ></span>
     {/each}
@@ -331,10 +331,12 @@
     width: var(--bar);
     height: var(--bar);
     border-radius: 50%;
+    background: var(--dot);
     transition: transform 700ms cubic-bezier(0.33, 1, 0.68, 1), border-radius var(--speed) var(--ease),
-      opacity var(--speed) var(--ease), filter var(--speed) var(--ease);
+      background var(--speed) var(--ease), opacity var(--speed) var(--ease), filter var(--speed) var(--ease);
   }
-  .m-dot.active { border-radius: 0; }
+  /* Grey dots; the photo you're on shows its colour */
+  .m-dot.active { border-radius: 0; background: var(--colour); }
   .m-dot.faded { opacity: 0; filter: blur(1px); }
 
   .m-top {

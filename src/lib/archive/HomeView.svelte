@@ -24,7 +24,6 @@
   const firstRow = 12;
   let row = $derived(mobile ? 32 : 44);
   let roll = $derived(mobile ? 6 : 15);
-  let hoveredKey: number | null = $state(null);
   let ratios: Record<string, number> = $state({});
   let blockW = $state(0);
   let blockH = $state(0);
@@ -145,13 +144,11 @@
       class:faded={mobile && key - step > 2}
       style:transform="translateY({(key - step) * row + firstRow}px)"
       onclick={() => (step = key)}
-      onmouseenter={() => (hoveredKey = key)}
-      onmouseleave={() => (hoveredKey = null)}
       aria-label={w.title}
       tabindex={key === step ? -1 : 0}
     >
-      <span class="dot" style:background={colours[w.id]}></span>
-      <span class="label" class:show={hoveredKey === key && key !== step}>{w.title}</span>
+      <span class="dot" style:--colour={colours[w.id]}></span>
+      <span class="label">{w.title}</span>
     </button>
   {/each}
 </div>
@@ -216,26 +213,44 @@
   }
   .row.faded { opacity: 0; filter: blur(1px); pointer-events: none; }
 
+  /* Grey dots; the current project, and the one you point at, show their colour */
   .dot {
     width: var(--bar);
     height: var(--bar);
     border-radius: 50%;
-    transition: border-radius var(--speed) var(--ease);
+    background: var(--dot);
+    transition: border-radius var(--speed) var(--ease), background var(--speed) var(--ease);
   }
-  .row:hover .dot, .row.active .dot { border-radius: 0; }
+  .row:hover .dot, .row.active .dot { border-radius: 0; background: var(--colour, var(--fg)); }
 
+  /* Pointing at any dot shows every project's name, as cells lined up with the title above;
+     the one you point at turns black. They hide after a short pause, so moving from dot to dot
+     doesn't flicker. */
   .label {
     position: absolute;
-    left: calc(100% + 18px);
+    left: calc(100% + var(--gap));
+    display: flex;
+    align-items: center;
+    height: var(--bar);
+    padding: 0 6px;
+    background: var(--cell);
     font-size: var(--label);
     font-weight: 700;
     white-space: nowrap;
     opacity: 0;
     transform: translateX(-4px);
     pointer-events: none;
-    transition: opacity var(--speed) var(--ease), transform var(--speed) var(--ease);
+    transition: opacity var(--speed) var(--ease) 250ms, transform var(--speed) var(--ease) 250ms;
   }
-  .label.show { opacity: 0.3; transform: none; }
+  .dots:has(.row:hover, .row:focus-visible) .label {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    transition-delay: 0ms;
+  }
+  .row:hover .label, .row:focus-visible .label { background: var(--fg); color: var(--bg); }
+  /* The current project's name is in the title cell already */
+  .row.active .label { display: none; }
 
   .title-bar {
     position: fixed;

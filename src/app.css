@@ -16,6 +16,7 @@
   --cell: #f0f0f0;
   --cell-hover: #e4e4e4;
   --cell-solid: #f0f0f0;
+  --dot: #d4d4d4; /* project dots; only the selected one shows its colour */
   --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --speed: 200ms;
   --slow: 500ms;
