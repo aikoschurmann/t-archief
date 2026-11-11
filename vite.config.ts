@@ -4,14 +4,15 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { FREE_WORK } from './src/lib/site'
 
 const WORK_DIR = fileURLToPath(new URL('./src/lib/assets/work', import.meta.url))
 
-type ProjectUpdate = { folder: string; order: number; image_order: string[]; home: string[]; hidden: string[]; visible: boolean; colour: string }
+type ProjectUpdate = { folder: string; order: number; image_order: string[]; home: string[]; hidden: string[]; visible: boolean; colour: string; free: boolean }
 
 /**
  * Dev-only endpoint behind the #/edit page: merges project order, visibility, dot colour,
- * image order, home picks and hidden images into each project's meta.json, keeping any
+ * section (vrij werk), image order, home picks and hidden images into each project's meta.json, keeping any
  * other fields as they are.
  */
 function archiveEditor(): Plugin {
@@ -46,6 +47,9 @@ function archiveEditor(): Plugin {
               else delete meta.visible
               if (/^#[0-9a-f]{6}$/i.test(p.colour)) meta.colour = p.colour
               else delete meta.colour
+              // Only touch the "vrij" section, so any other section value stays as it is
+              if (p.free) meta.section = FREE_WORK
+              else if (meta.section === FREE_WORK) delete meta.section
               fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n')
             }
             res.setHeader('Content-Type', 'application/json')
