@@ -1,5 +1,9 @@
 <script lang="ts">
-  let { back = false, page = '' }: { back?: boolean; page?: string } = $props();
+  import { route } from './router.svelte';
+  import { COPY, EMAIL, INSTAGRAM, INSTAGRAM_HANDLE, STUDIO, type Lang } from '../site';
+
+  let { back = false, page = '', lang = 'nl' }: { back?: boolean; page?: string; lang?: Lang } = $props();
+  let copy = $derived(COPY[lang]);
 
   // Phones: everything lives behind one "Menu" button. Opening follows the reference site's
   // sequence: the name cell widens, the links grow upward one by one, then the info panels
@@ -15,15 +19,26 @@
   function toggleMenu() {
     open = !open;
   }
+
+  // Any navigation closes the menu
+  $effect(() => {
+    route.path;
+    close();
+  });
 </script>
 
-<svelte:window onhashchange={close} onkeydown={e => e.key === 'Escape' && close()} />
+<svelte:window onkeydown={e => e.key === 'Escape' && close()} />
 
 <!-- Desktop: the studio name signs every page, bottom left, and leads to the info page
-     (which has the name at the top already) -->
+     (which has the name at the top already). Home says what the studio does; every page but
+     Info has a way to book. -->
 {#if page !== 'info'}
   <footer class="bar desktop grid">
-    <a href="#/info" class="cell brand">Studio 't Archief</a>
+    <a href="/info" class="cell brand">{STUDIO}</a>
+    {#if page === 'home'}
+      <span class="cell positioning">{copy.positioning}</span>
+    {/if}
+    <a href="/info#boek" class="cell current book">{copy.book} →</a>
   </footer>
 {/if}
 
@@ -37,40 +52,40 @@
       <div class="panel">
         <span class="head">Contact</span>
         <!-- ↗ plus U+FE0E: without it iPhones draw the arrow as an emoji -->
-        <a href="mailto:info@tarchief.studio" class="line">info@tarchief.studio →</a>
-        <a href="https://instagram.com/tarchief.studio" target="_blank" rel="noopener" class="line">Instagram @tarchief.studio ↗&#xFE0E;</a>
+        <a href="mailto:{EMAIL}" class="line">{EMAIL} →</a>
+        <a href={INSTAGRAM} target="_blank" rel="noopener" class="line">Instagram {INSTAGRAM_HANDLE} ↗&#xFE0E;</a>
         <span class="line muted">Leuven / Brussel</span>
       </div>
     </div>
     <div class="grow panel-wrap" inert={!open}>
       <div class="panel">
-        <span class="head">Diensten</span>
-        <span>Eventfotografie</span>
-        <span>Concertfotografie</span>
-        <span>Cultuurfotografie</span>
+        <span class="head">{copy.labels.offers}</span>
+        {#each copy.offers as offer}
+          <span>{offer}</span>
+        {/each}
       </div>
     </div>
 
     <!-- Closed: Home · Info · Menu (contact is in the menu). On project pages "Home" is "Terug". -->
     <div class="bottom-row">
       <div class="name" class:current={page === 'home' && !open}>
-        <a href="#/" class="name-link" onclick={close}>{back && !open ? '← Terug' : open ? "Studio 't Archief" : 'Home'}</a>
+        <a href="/" class="name-link" onclick={close}>{back && !open ? '← Terug' : open ? STUDIO : 'Home'}</a>
         <div class="grow bio-wrap" inert={!open}>
           <div>
             <p class="bio">
-              Event-, concert- &amp; cultuurfotografie · Leuven/Brussel. Stuur me een DM!
+              {copy.positioning}
             </p>
           </div>
         </div>
       </div>
-      <a href="#/info" class="cell info-mobile" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined}>Info</a>
+      <a href="/info" class="cell info-mobile" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined}>Info</a>
     </div>
   </div>
 
   <div class="right">
-    <div class="grow link" inert={!open}><div><a href="#/index" class="cell" class:current={page === 'index'} aria-current={page === 'index' ? 'page' : undefined} onclick={close}>Index</a></div></div>
-    <div class="grow link" inert={!open}><div><a href="#/info" class="cell" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined} onclick={close}>Info</a></div></div>
-    <div class="grow link" inert={!open}><div><a href="mailto:info@tarchief.studio" class="cell cta">Mail mij →</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="/projecten" class="cell" class:current={page === 'index'} aria-current={page === 'index' ? 'page' : undefined} onclick={close}>Index</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="/info" class="cell" class:current={page === 'info'} aria-current={page === 'info' ? 'page' : undefined} onclick={close}>Info</a></div></div>
+    <div class="grow link" inert={!open}><div><a href="/info#boek" class="cell cta" onclick={close}>{copy.book} →</a></div></div>
     <button class="cell toggle" onclick={toggleMenu} aria-expanded={open}>
       {#if open}Sluit{:else}Menu{#if section}<span class="section">&nbsp;· {section}</span>{/if}{/if}
     </button>
@@ -86,6 +101,9 @@
     z-index: 50;
   }
   .brand { grid-column: 1 / 3; }
+  .positioning { grid-column: 3 / 7; }
+  .book { grid-column: 11 / 13; }
+  .desktop > * { grid-row: 1; }
   .mobile, .overlay { display: none; }
 
   @media (max-width: 768px) {

@@ -2,6 +2,8 @@
   import type { WorkItem } from '../utils/workLoader';
   import { pad } from './media';
   import Frame from './Frame.svelte';
+  import { navigate } from './router.svelte';
+  import { COPY, FREE_WORK } from '../site';
 
   let { works, colours = {} }: { works: WorkItem[]; colours?: Record<string, string> } = $props();
 
@@ -9,16 +11,26 @@
   let hovered: WorkItem | undefined = $state();
   let preview = $derived(hovered ?? works[0]);
 
+  // Stage and event work first; landscape and portrait under their own heading
+  let groups = $derived([
+    { label: '', items: works.filter(w => w.meta?.section !== FREE_WORK) },
+    { label: COPY.nl.labels.free, items: works.filter(w => w.meta?.section === FREE_WORK) }
+  ].filter(g => g.items.length));
+
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') location.hash = '#/';
+    if (e.key === 'Escape') navigate('/');
   }
 </script>
 
 <svelte:window onkeydown={onKey} />
 
 <div class="index grid">
+  {#each groups as group (group.label)}
+  {#if group.label}
+    <h2 class="cell heading">{group.label}</h2>
+  {/if}
   <ol class="list">
-    {#each works as w, i (w.id)}
+    {#each group.items as w, i (w.id)}
       <li>
         <a
           href={w.href}
@@ -37,6 +49,7 @@
       </li>
     {/each}
   </ol>
+  {/each}
 
   {#if preview?.url}
     <a href={preview.href} class="photo" aria-label={preview.title}>
@@ -53,6 +66,14 @@
     padding-top: calc(var(--gap) * 2 + var(--bar) + 8vh);
     padding-bottom: calc(var(--gap) * 4 + var(--bar));
     align-items: start;
+  }
+
+  .heading {
+    grid-column: 1 / 3;
+    margin-top: calc(var(--gap) * 3);
+    margin-bottom: 6px;
+    background: var(--fg);
+    color: var(--bg);
   }
 
   .list {
@@ -100,6 +121,7 @@
 
   .photo {
     grid-column: 9 / 13;
+    grid-row: 1 / span 4;
     aspect-ratio: 4 / 5;
     position: sticky;
     top: calc(var(--gap) * 2 + var(--bar));
@@ -108,6 +130,7 @@
   @media (max-width: 768px) {
     .index { padding-top: calc(var(--gap) * 3); padding-bottom: calc(var(--gap) * 3 + var(--bar)); }
     .list { grid-column: 1 / 7; }
+    .heading { grid-column: 1 / 4; }
     .name { grid-column: 1 / 6; }
     .count { grid-column: 6 / 7; justify-content: center; }
     .cat, .year, .photo, .count-label { display: none; }

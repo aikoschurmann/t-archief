@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import TopBar from './lib/archive/TopBar.svelte';
   import BottomBar from './lib/archive/BottomBar.svelte';
   import InfoView from './lib/archive/InfoView.svelte';
@@ -8,13 +7,16 @@
   import EditView from './lib/archive/EditView.svelte';
   import ProjectView from './lib/archive/ProjectView.svelte';
   import { pad, projectColours } from './lib/archive/media';
+  import { route } from './lib/archive/router.svelte';
   import { loadWorks } from './lib/utils/workLoader';
+  import { COPY, DESCRIPTION, FREE_WORK, PERSON, STUDIO } from './lib/site';
 
-  let currentPath = $state(window.location.hash);
   let allWorks = loadWorks();
   // Hidden projects, and projects whose images are all hidden, don't appear on the site
   // (the editor still sees them)
   let works = allWorks.filter(w => w.visible && w.images.length > 0);
+  // Stage and event work leads; landscape and portrait sit apart as "Vrij werk"
+  let mainWorks = works.filter(w => w.meta?.section !== FREE_WORK);
 
   let slide = $state(0);
   let homeSlide = $state(0);
@@ -24,69 +26,54 @@
   $effect(() => {
     projectColours(works).then(c => (colours = c));
   });
-  
+
   // Find active work item if in a work route
   let activeWork = $derived(
-    currentPath.startsWith('#/work/') 
-      ? works.find(w => w.id === currentPath.replace('#/work/', '')) 
+    route.path.startsWith('/work/')
+      ? works.find(w => w.id === route.path.slice('/work/'.length))
       : null
   );
 
   // Coming back home lands on the project you were looking at, not on the first one
   $effect(() => {
-    if (activeWork) homeSlide = works.indexOf(activeWork);
+    if (activeWork && mainWorks.includes(activeWork)) homeSlide = mainWorks.indexOf(activeWork);
   });
 
   let page = $derived(
-    import.meta.env.DEV && currentPath === '#/edit' ? 'edit'
+    import.meta.env.DEV && route.path === '/edit' ? 'edit'
       : activeWork ? 'project'
-      // Old section links (#about, #contact) land on the info page too
-      : ['#/info', '#about', '#contact'].includes(currentPath) ? 'info'
-      : currentPath === '#/index' ? 'index'
+      : route.path === '/info' || route.path === '/en' ? 'info'
+      : route.path === '/projecten' ? 'index'
       : 'home'
   );
-
-  onMount(() => {
-    const handleHashChange = () => {
-      currentPath = window.location.hash;
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    
-    if (window.location.hash) {
-      handleHashChange();
-    }
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  });
+  let lang = $derived(route.path === '/en' ? 'en' : 'nl') as 'nl' | 'en';
 
   // Reset the project counter on navigation
   $effect(() => {
-    currentPath;
+    route.path;
     slide = 0;
   });
 
   // Track page views in GA4 and update title
   $effect(() => {
-    // 1. Update document title & description
-    let title = "Studio 't Archief | Event-, concert- & cultuurfotografie";
-    let description = "Studio 't Archief: event-, concert- en cultuurfotografie in Leuven en Brussel. Van moment naar beeld, zodat het niet verloren gaat.";
-    
+    // 1. Update document title & description (the build writes the same into each page's HTML)
+    let title = `${STUDIO} | Podium- en eventfotografie in Leuven en Brussel`;
+    let description = DESCRIPTION;
+
     if (activeWork) {
-      title = `${activeWork.title} | Studio 't Archief`;
-      description = activeWork.description || `Bekijk het project ${activeWork.title} van Studio 't Archief.`;
+      title = `${activeWork.title} | ${STUDIO}`;
+      description = activeWork.meta?.context || activeWork.description || `${activeWork.title}, gefotografeerd door ${PERSON}.`;
     } else if (page === 'info') {
-      title = "Info | Studio 't Archief";
-      description = "Studio 't Archief: event-, concert- en cultuurfotografie in Leuven en Brussel. Stuur me een DM of een mail.";
+      title = lang === 'en' ? `About and booking | ${STUDIO}` : `Info en boeken | ${STUDIO}`;
+      description = `${COPY[lang].statement} ${COPY[lang].offers.join(', ')}.`;
     } else if (page === 'index') {
-      title = "Index | Studio 't Archief";
-      description = "Alle projecten van Studio 't Archief: event-, concert- en cultuurfotografie.";
+      title = `Projecten | ${STUDIO}`;
+      description = `Alle projecten van ${STUDIO}: voorstellingen, concerten en events.`;
     }
-    
+
     document.title = title;
-    
+    document.documentElement.lang = lang === 'en' ? 'en' : 'nl-BE';
+
     // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
@@ -95,15 +82,8 @@
 
     // 2. Track GA page view
     if (typeof (window as any).gtag === 'function') {
-      // Normalize path for GA: #/work/slug -> /work/slug, #about -> /about, etc.
-      const path = currentPath.startsWith('#') 
-        ? currentPath.substring(1) || '/' 
-        : currentPath || '/';
-      
-      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-
       (window as any).gtag('config', 'G-JC6KNSDQYF', {
-        page_path: normalizedPath,
+        page_path: route.path,
         page_title: title,
         page_location: window.location.href
       });
@@ -118,7 +98,7 @@
   <TopBar
     {page}
     back={!!activeWork}
-    counter={page === 'home' ? `${pad(homeSlide + 1)} / ${pad(works.length)}`
+    counter={page === 'home' ? `${pad(homeSlide + 1)} / ${pad(mainWorks.length)}`
       : activeWork ? `${pad(slide + 1)} / ${pad(activeWork.images.length)}` : ''}
   />
 
@@ -127,14 +107,14 @@
       <ProjectView item={activeWork} colour={colours[activeWork.id]} onIndex={i => (slide = i)} />
     {/key}
   {:else if page === 'info'}
-    <InfoView {works} />
+    <InfoView works={mainWorks} {lang} />
   {:else if page === 'index'}
     <IndexView {works} {colours} />
   {:else}
-    <HomeView {works} {colours} bind:current={homeSlide} />
+    <HomeView works={mainWorks} {colours} bind:current={homeSlide} />
   {/if}
 
-  <BottomBar {page} back={!!activeWork} />
+  <BottomBar {page} {lang} back={!!activeWork} />
   {/if}
 </main>
 

@@ -164,7 +164,7 @@
 
 <div class="edit grid">
   <header class="bar">
-    <a href="#/" class="cell back">← Site</a>
+    <a href="/" class="cell back">← Site</a>
     <span class="cell heading">Volgorde bewerken</span>
     <button class="cell" onclick={sortByColour}>Sorteer op kleur</button>
     <button class="cell save" class:dirty={status === 'dirty'} onclick={save} disabled={status === 'saving'}>

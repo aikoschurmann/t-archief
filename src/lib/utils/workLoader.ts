@@ -113,7 +113,7 @@ export function loadWorks(): WorkItem[] {
     }
 
     // Default href
-    item.href = `#/work/${item.id}`;
+    item.href = `/work/${item.id}`;
 
     // Apply meta.json overrides
     const metaPath = `${folderPath}/meta.json`;
@@ -156,7 +156,7 @@ export function loadWorks(): WorkItem[] {
       
       if (meta.slug) {
         item.id = meta.slug;
-        item.href = `#/work/${meta.slug}`;
+        item.href = `/work/${meta.slug}`;
       }
 
       if (meta.type) item.type = meta.type;

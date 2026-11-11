@@ -3,6 +3,8 @@
   import type { WorkItem } from '../utils/workLoader';
   import { palette, displaySrc, srcsetFor, pad, photoDotColours, swatch, aspectRatio } from './media';
   import Strip from './Strip.svelte';
+  import { navigate } from './router.svelte';
+  import { altFor } from '../site';
 
   let { item, colour = 'var(--cell)', onIndex }: { item: WorkItem; colour?: string; onIndex: (i: number) => void } = $props();
 
@@ -33,9 +35,9 @@
     for (const img of item.images) aspectRatio(img).then(r => (ratios[img] = r));
   });
   const ROW = 32;
-  let details = $derived(
-    [item.meta?.category, item.meta?.year ?? item.meta?.date, item.meta?.client, item.meta?.location].filter(Boolean)
-  );
+  const alt = (i: number) => altFor(item.title, item.meta?.category, i, item.images.length);
+  // The same as the desktop bar: category and year
+  let details = $derived([item.meta?.category, item.meta?.year ?? item.meta?.date].filter(Boolean));
 
   $effect(() => {
     photoDotColours(item.images).then(list => {
@@ -111,7 +113,7 @@
   }
 
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') location.hash = '#/';
+    if (e.key === 'Escape') navigate('/');
     // Phones: the strip handles arrow keys itself
     if (mobile) return;
     if (e.key === 'ArrowRight') goTo(current + 1);
@@ -160,28 +162,19 @@
   <Strip
     bind:step={mStep}
     count={item.images.length}
-    itemAt={i => ({ src: item.images[i], alt: `${item.title} — ${pad(i + 1)}`, ratio: ratios[item.images[i]] })}
+    itemAt={i => ({ src: item.images[i], alt: alt(i), ratio: ratios[item.images[i]] })}
     fit="contain"
     {viewH}
   />
 {/if}
 
 <div class="project">
-  <div class="credits grid">
-    {#if item.meta?.client}
-      <div class="cell stacked c1"><span>Klant</span><span>{item.meta.client}</span></div>
-    {/if}
-    {#if item.meta?.location}
-      <div class="cell stacked c2"><span>Locatie</span><span>{item.meta.location}</span></div>
-    {/if}
-  </div>
-
+  <!-- Everything about the project in one bar next to its colours (the counter is in the top bar) -->
   <div class="meta grid">
     <span class="name">
       <span class="dot" style:background={colour}></span>
       <span class="cell title">{item.title}</span>
     </span>
-    <span class="cell counter">{pad(current + 1)} / {pad(item.images.length)}</span>
     {#if item.meta?.category}
       <span class="cell cat">{item.meta.category}</span>
     {/if}
@@ -202,7 +195,7 @@
           src={displaySrc(img)}
           srcset={srcsetFor(img)}
           sizes="(max-width: 768px) 100vw, 70vw"
-          alt="{item.title} — {pad(i + 1)}"
+          alt={alt(i)}
           loading={i < 3 ? 'eager' : 'lazy'}
           onload={measure}
         />
@@ -224,23 +217,6 @@
     padding-bottom: calc(var(--gap) * 2 + var(--bar));
   }
 
-  .credits {
-    align-items: start;
-    position: fixed;
-    top: var(--gap);
-    left: 0;
-    right: 0;
-    z-index: 40;
-    pointer-events: none;
-  }
-  .stacked {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    height: auto;
-  }
-  .c1 { grid-column: 1 / 3; }
-  .c2 { grid-column: 3 / 5; }
 
   .meta {
     margin-top: auto;
@@ -309,9 +285,6 @@
     bottom: 0;
     background: var(--fg);
   }
-
-  /* The counter lives in the top bar on desktop */
-  .counter { display: none; }
 
   /* Phones: the strip above replaces the desktop layout */
   .m-dots {
